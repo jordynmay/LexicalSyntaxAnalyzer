@@ -174,6 +174,8 @@ COMMENT         [#](.)*$
 		return T_INTCONST;
 		}
 {IDENT}	{
+        /* Associates an identifier's name with an identifier token */
+        yylval.text = strdup(yytext);
 		printTokenInfo("IDENT", yytext);
 		return T_IDENT;
 		}

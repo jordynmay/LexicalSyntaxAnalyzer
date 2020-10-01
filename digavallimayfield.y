@@ -1,11 +1,16 @@
 %{
 #include <stdio.h>
+#include <stack>
 
 int numLines = 1; 
+stack<SYMBOL_TABLE> scopeStack; // Global stack
 
 void printRule(const char *, const char *);
 int yyerror(const char *s);
 void printTokenInfo(const char* tokenType, const char* lexeme);
+void beginScope();
+void endScope();
+bool findEntryInAnyScope(const string theName);
 
 extern "C" 
 {
@@ -15,6 +20,12 @@ extern "C"
 }
 
 %}
+
+/* Used to associate an identifier's name with an identifier token */
+%union
+{
+  char* text;
+};
 
 /* Token declarations */
 %token  T_IDENT T_INTCONST T_UNKNOWN
@@ -29,6 +40,8 @@ extern "C"
 %token  T_MOD T_POW
 %token  T_LT T_LE T_GT T_GE T_EQ T_NE
 %token  T_NOT T_AND T_OR T_ASSIGN
+
+%type <text> T_IDENT // Associates T_IDENT token with the char* type
 
 %nonassoc   T_RPAREN
 %nonassoc   T_ELSE
@@ -413,9 +426,43 @@ int yyerror(const char *s)
   return(1);
 }
 
+// Print out token's type and lexeme
 void printTokenInfo(const char* tokenType, const char* lexeme) 
 {
   printf("TOKEN: %-20s LEXEME: %s\n", tokenType, lexeme);
+}
+
+// Called each time we enter a new scope
+void beginScope()
+{
+  scopeStack.push(SYMBOL_TABLE());
+  printf("\n___Entering new scope...\n\n");
+}
+
+// Called each time we exit a scope
+void endScope()
+{
+  scopeStack.pop();
+  printf("\n___Exiting scope...\n\n");
+}
+
+// Looks through all symbol tables in the global stack
+bool findEntryInAnyScope(const string theName)
+{
+  if(scopeStack.empty()) return(false);
+  bool found = scopeStack.top().findEntry(theName);
+  if(found)
+  {
+    return(true);
+  }
+  else
+  {
+    SYMBOL_TABLE symbolTable = scopeStack.top();
+    scopeStack.pop();
+    found = findEntryInAnyScope(theName);
+    scopeStack.push(symbolTable);
+    return(found);
+  }
 }
 
 int main() 
