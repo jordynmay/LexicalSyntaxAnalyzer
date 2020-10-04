@@ -404,6 +404,7 @@ N_SINGLE_ELEMENT    : T_IDENT T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
 N_ENTIRE_VAR    : T_IDENT
             {
             printRule("ENTIRE_VAR", "IDENT");
+            bool found = findEntryInAnyScope(string($1));
             }
             ;
 
