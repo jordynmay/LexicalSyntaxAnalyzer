@@ -168,6 +168,7 @@ N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR T_RPAREN N_EXPR
 N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT T_IN N_EXPR T_RPAREN N_EXPR
             {
             printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
+            bool added = addEntry(string($1));
             }
             ;
 N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
@@ -187,6 +188,7 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX T_ASSIGN N_EXPR
             {
             printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
+            bool added = addEntry(string($1));
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -221,6 +223,10 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
 N_FUNCTION_DEF  : T_FUNCTION T_LPAREN N_PARAM_LIST T_RPAREN N_COMPOUND_EXPR
             {
             printRule("FUNCTION_DEF", "FUNCTION ( PARAM_LIST ) COMPOUND_EXPR");
+            //
+            beginScope();
+            //
+            endScope();
             }
             ;
 N_PARAM_LIST    : N_PARAMS
@@ -240,10 +246,24 @@ N_NO_PARAMS :
 N_PARAMS    : T_IDENT
             {
             printRule("PARAMS", "IDENT");
+            string lexeme = string($1);
+            printf("___Adding %s to symbol table\n", $1);
+            bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            if(!success)
+            {
+              yyerror("Multiply defined identifier");
+            }
             }
             | T_IDENT T_COMMA N_PARAMS
             {
             printRule("PARAMS", "IDENT, PARAMS");
+            string lexeme = string($1);
+            printf("___Adding %s to symbol table\n", $1);
+            bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            if(!success)
+            {
+              yyerror("Multiply defined identifier");
+            }
             }
             ;
 N_FUNCTION_CALL : T_IDENT T_LPAREN N_ARG_LIST T_RPAREN
@@ -268,6 +288,12 @@ N_NO_ARGS   :
 N_ARGS      : N_EXPR
             {
             printRule("ARGS", "EXPR");
+            //ASK LEOPOLD
+            bool exist = findEntryInAnyScope(string($1));
+            if(exist)
+            {
+              yyerror("Undefined identifier");
+            } 
             }
             | N_EXPR T_COMMA N_ARGS
             {
@@ -399,12 +425,21 @@ N_VAR       : N_ENTIRE_VAR
 N_SINGLE_ELEMENT    : T_IDENT T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             {
             printRule("SINGLE_ELEMENT", "IDENT [[ EXPR ]]");
+            bool exist = findEntryInAnyScope(string($1));
+            if(exist)
+            {
+              yyerror("Undefined identifier");
+            } 
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
             {
             printRule("ENTIRE_VAR", "IDENT");
             bool found = findEntryInAnyScope(string($1));
+            if(found)
+            {
+              yyerror("Undefined identifier");
+            }
             }
             ;
 
