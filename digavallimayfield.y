@@ -436,17 +436,15 @@ N_VAR       : N_ENTIRE_VAR
             }
             ;
 N_SINGLE_ELEMENT    : T_IDENT
+            T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             {
+            printRule("SINGLE_ELEMENT", "IDENT [[ EXPR ]]");
             string lexeme = string($1);
             bool exists = findEntryInAnyScope(lexeme);
             if(!exists)
             {
               yyerror("Undefined identifier");
             }
-            }
-            T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
-            {
-            printRule("SINGLE_ELEMENT", "IDENT [[ EXPR ]]"); 
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
