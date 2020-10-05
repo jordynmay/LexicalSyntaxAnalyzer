@@ -192,8 +192,8 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             {
-              string lexeme = string($1);
-              bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            string lexeme = string($1);
+            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
             }
             T_ASSIGN N_EXPR
             {
@@ -519,6 +519,7 @@ bool findEntryInAnyScope(const string theName)
 
 int main() 
 {
+  beginScope();
   do 
   {
 	yyparse();
