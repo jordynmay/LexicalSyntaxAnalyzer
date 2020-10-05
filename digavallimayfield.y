@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stack>
+#include "SymbolTable.h"
 
 int numLines = 1; 
 stack<SYMBOL_TABLE> scopeStack; // Global stack
@@ -165,10 +166,14 @@ N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR T_RPAREN N_EXPR
             printRule("WHILE_EXPR", "WHILE ( EXPR ) EXPR");
             }
             ;
-N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT T_IN N_EXPR T_RPAREN N_EXPR
+N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
+            {
+            string lexeme = string($3);
+            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            }
+            T_IN N_EXPR T_RPAREN N_EXPR
             {
             printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
-            bool added = addEntry(string($1));
             }
             ;
 N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
@@ -185,10 +190,14 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             printRule("CONST_LIST", "CONST");
             }
             ;
-N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX T_ASSIGN N_EXPR
+N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
+            {
+              string lexeme = string($1);
+              bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            }
+            T_ASSIGN N_EXPR
             {
             printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
-            bool added = addEntry(string($1));
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -220,12 +229,13 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
             printRule("INPUT_EXPR", "READ ( )");
             }
             ;
-N_FUNCTION_DEF  : T_FUNCTION T_LPAREN N_PARAM_LIST T_RPAREN N_COMPOUND_EXPR
+N_FUNCTION_DEF  : T_FUNCTION
+            {
+              beginScope();
+            }
+            T_LPAREN N_PARAM_LIST T_RPAREN N_COMPOUND_EXPR
             {
             printRule("FUNCTION_DEF", "FUNCTION ( PARAM_LIST ) COMPOUND_EXPR");
-            //
-            beginScope();
-            //
             endScope();
             }
             ;
@@ -266,7 +276,16 @@ N_PARAMS    : T_IDENT
             }
             }
             ;
-N_FUNCTION_CALL : T_IDENT T_LPAREN N_ARG_LIST T_RPAREN
+N_FUNCTION_CALL : T_IDENT
+            {
+            string lexeme = string($1);
+            bool exists = findEntryInAnyScope(lexeme);
+            if(!exists)
+            {
+              yyerror("Undefined identifier");
+            }
+            }
+            T_LPAREN N_ARG_LIST T_RPAREN
             {
             printRule("FUNCTION_CALL", "IDENT ( ARG_LIST )");
             }
@@ -288,12 +307,6 @@ N_NO_ARGS   :
 N_ARGS      : N_EXPR
             {
             printRule("ARGS", "EXPR");
-            //ASK LEOPOLD
-            bool exist = findEntryInAnyScope(string($1));
-            if(exist)
-            {
-              yyerror("Undefined identifier");
-            } 
             }
             | N_EXPR T_COMMA N_ARGS
             {
@@ -422,21 +435,26 @@ N_VAR       : N_ENTIRE_VAR
             printRule("VAR", "SINGLE_ELEMENT");
             }
             ;
-N_SINGLE_ELEMENT    : T_IDENT T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
+N_SINGLE_ELEMENT    : T_IDENT
             {
-            printRule("SINGLE_ELEMENT", "IDENT [[ EXPR ]]");
-            bool exist = findEntryInAnyScope(string($1));
-            if(exist)
+            string lexeme = string($1);
+            bool exists = findEntryInAnyScope(lexeme);
+            if(!exists)
             {
               yyerror("Undefined identifier");
-            } 
+            }
+            }
+            T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
+            {
+            printRule("SINGLE_ELEMENT", "IDENT [[ EXPR ]]"); 
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
             {
             printRule("ENTIRE_VAR", "IDENT");
-            bool found = findEntryInAnyScope(string($1));
-            if(found)
+            string lexeme = string($1);
+            bool exists = findEntryInAnyScope(lexeme);
+            if(!exists)
             {
               yyerror("Undefined identifier");
             }
