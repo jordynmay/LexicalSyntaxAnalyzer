@@ -55,6 +55,7 @@ extern "C"
 N_START		: N_EXPR
 			{
 			printRule("START", "EXPR");
+      endScope();
 			printf("\n---- Completed parsing ----\n\n");
 			}
 			;
@@ -168,12 +169,17 @@ N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR T_RPAREN N_EXPR
             ;
 N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             {
+            printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
             string lexeme = string($3);
             bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            if(added)
+            {
+            printf("___Adding %s to symbol table\n", $3);
+            }
             }
             T_IN N_EXPR T_RPAREN N_EXPR
             {
-            printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
+            //printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
             }
             ;
 N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
@@ -192,12 +198,17 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             {
+            printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
             string lexeme = string($1);
             bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            if(added)
+            {
+            printf("___Adding %s to symbol table\n", $1);
+            }
             }
             T_ASSIGN N_EXPR
             {
-            printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
+            //printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -262,6 +273,7 @@ N_PARAMS    : T_IDENT
             if(!success)
             {
               yyerror("Multiply defined identifier");
+              exit(1);
             }
             }
             | T_IDENT T_COMMA N_PARAMS
@@ -273,21 +285,24 @@ N_PARAMS    : T_IDENT
             if(!success)
             {
               yyerror("Multiply defined identifier");
+              exit(1);
             }
             }
             ;
 N_FUNCTION_CALL : T_IDENT
             {
+            //stuff?
+            }
+            T_LPAREN N_ARG_LIST T_RPAREN
+            {
+            printRule("FUNCTION_CALL", "IDENT ( ARG_LIST )");
             string lexeme = string($1);
             bool exists = findEntryInAnyScope(lexeme);
             if(!exists)
             {
               yyerror("Undefined identifier");
+              exit(1);
             }
-            }
-            T_LPAREN N_ARG_LIST T_RPAREN
-            {
-            printRule("FUNCTION_CALL", "IDENT ( ARG_LIST )");
             }
             ;
 N_ARG_LIST  : N_ARGS
@@ -444,6 +459,7 @@ N_SINGLE_ELEMENT    : T_IDENT
             if(!exists)
             {
               yyerror("Undefined identifier");
+              exit(1);
             }
             }
             ;
@@ -455,6 +471,7 @@ N_ENTIRE_VAR    : T_IDENT
             if(!exists)
             {
               yyerror("Undefined identifier");
+              exit(1);
             }
             }
             ;
