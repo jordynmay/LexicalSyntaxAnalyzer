@@ -179,7 +179,6 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             }
             T_IN N_EXPR T_RPAREN N_EXPR
             {
-            //printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
             }
             ;
 N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
@@ -208,7 +207,6 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             }
             T_ASSIGN N_EXPR
             {
-            //printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -291,7 +289,6 @@ N_PARAMS    : T_IDENT
             ;
 N_FUNCTION_CALL : T_IDENT
             {
-            //stuff?
             }
             T_LPAREN N_ARG_LIST T_RPAREN
             {
@@ -490,9 +487,9 @@ void printRule(const char *lhs, const char *rhs)
 
 int yyerror(const char *s) 
 {
-    printf("Line %d: ", numLines);
+  printf("Line %d: ", numLines);
   printf("%s\n", s);
-  return(1);
+  exit(1);
 }
 
 // Print out token's type and lexeme
