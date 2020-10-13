@@ -35,17 +35,25 @@ private:
 
 public:
   // Constructors
-  SYMBOL_TABLE_ENTRY( ) { name = ""; typeInfo = UNDEFINED; }
+  SYMBOL_TABLE_ENTRY( )
+  {
+    name = "";
+    typeInfo.type = UNDEFINED;
+    typeInfo.numParams = 0;
+    typeInfo.returnType = 0;
+  }
 
-  SYMBOL_TABLE_ENTRY(const string theName, const int theType)
+  SYMBOL_TABLE_ENTRY(const string theName, const TYPE_INFO theType)
   {
     name = theName;
-    typeCode = theType;
+    typeInfo.type = theType.type;
+    typeInfo.numParams = theType.numParams;
+    typeInfo.returnType = theType.returnType;
   }
 
   // Accessors
   string getName() const { return name; }
-  int getTypeCode() const { return typeInfo.type; }
+  TYPE_INFO getTypeInfo() const { return typeInfo; }
 };
 
 #endif  // SYMBOL_TABLE_ENTRY_H
