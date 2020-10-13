@@ -3,6 +3,13 @@
 #include <stack>
 #include "SymbolTable.h"
 
+// Used for enabling/disabling print statements easily
+// Helpful for error detection
+bool PRINT_RULE = 0;
+bool PRINT_TOKEN = 0;
+bool PRINT_SCOPE = 0;
+bool PRINT_ADD = 0;
+
 int numLines = 1; 
 stack<SYMBOL_TABLE> scopeStack; // Global stack
 
@@ -172,7 +179,7 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
             string lexeme = string($3);
             bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
-            if(added)
+            if(added && PRINT_ADD)
             {
             printf("___Adding %s to symbol table\n", $3);
             }
@@ -200,7 +207,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
             string lexeme = string($1);
             bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
-            if(added)
+            if(added && PRINT_ADD)
             {
             printf("___Adding %s to symbol table\n", $1);
             }
@@ -266,7 +273,10 @@ N_PARAMS    : T_IDENT
             {
             printRule("PARAMS", "IDENT");
             string lexeme = string($1);
-            printf("___Adding %s to symbol table\n", $1);
+            if(PRINT_ADD)
+            {
+              printf("___Adding %s to symbol table\n", $1);
+            }
             bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
             if(!success)
             {
@@ -278,7 +288,10 @@ N_PARAMS    : T_IDENT
             {
             printRule("PARAMS", "IDENT, PARAMS");
             string lexeme = string($1);
-            printf("___Adding %s to symbol table\n", $1);
+            if(PRINT_ADD)
+            {
+              printf("___Adding %s to symbol table\n", $1);
+            }
             bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
             if(!success)
             {
@@ -481,7 +494,10 @@ extern FILE *yyin;
 
 void printRule(const char *lhs, const char *rhs) 
 {
-  printf("%s -> %s\n", lhs, rhs);
+  if(PRINT_RULE)
+  {
+    printf("%s -> %s\n", lhs, rhs);
+  }
   return;
 }
 
@@ -495,21 +511,33 @@ int yyerror(const char *s)
 // Print out token's type and lexeme
 void printTokenInfo(const char* tokenType, const char* lexeme) 
 {
-  printf("TOKEN: %-20s LEXEME: %s\n", tokenType, lexeme);
+  if(PRINT_TOKEN)
+  {
+    printf("TOKEN: %-20s LEXEME: %s\n", tokenType, lexeme);
+  }
+  return;
 }
 
 // Called each time we enter a new scope
 void beginScope()
 {
   scopeStack.push(SYMBOL_TABLE());
-  printf("\n___Entering new scope...\n\n");
+  if(PRINT_SCOPE)
+  {
+    printf("\n___Entering new scope...\n\n");
+  }
+  return;
 }
 
 // Called each time we exit a scope
 void endScope()
 {
   scopeStack.pop();
-  printf("\n___Exiting scope...\n\n");
+  if(PRINT_SCOPE)
+  {
+    printf("\n___Exiting scope...\n\n");
+  }
+  return;
 }
 
 // Looks through all symbol tables in the global stack
