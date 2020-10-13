@@ -6,6 +6,7 @@
 #include "SymbolTableEntry.h"
 using namespace std;
 
+
 class SYMBOL_TABLE
 {
 private:
