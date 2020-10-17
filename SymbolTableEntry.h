@@ -5,6 +5,8 @@
 using namespace std;
 
 // Type codes
+#define NOT_APPLICABLE -3
+#define GOES_TO_EPSILON -2
 #define UNDEFINED -1
 #define NULL 0
 #define INT 1
