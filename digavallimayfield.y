@@ -3,6 +3,31 @@
 #include <stack>
 #include "SymbolTable.h"
 
+#define ARITHMETIC_OP -10
+#define LOGICAL_OP -11
+#define RELATIONAL_OP -12
+
+#define UNDEFINED_IDENT "Undefined identifier"
+#define MULTPLY_DEFINED_IDENT "Multiply defined identifier"
+#define ARG1_MUST_BE_INT "Arg 1 must be integer"
+#define ARG2_MUST_BE_INT "Arg 2 must be integer"
+#define ARG1_MUST_BE_LIST "Arg 1 must be list"
+#define ARG2_MUST_BE_LIST "Arg 2 must be list"
+#define ARG1_MUST_BE_FNCT "Arg 1 must be function"
+#define ARG2_MUST_BE_FNCT "Arg 2 must be function"
+#define ARG1_MUST_BE_INT_FLOAT_BOOL "Arg 1 must be integer or float or bool"
+#define ARG2_MUST_BE_INT_FLOAT_BOOL "Arg 2 must be integer or float or bool"
+#define ARG1_CANNOT_BE_FNCT "Arg 1 cannot be function"
+#define ARG2_CANNOT_BE_FNCT "Arg 2 cannot be function"
+#define ARG1_CANNOT_BE_LIST "Arg 1 cannot be list"
+#define ARG2_CANNOT_BE_LIST "Arg 2 cannot be list"
+#define ARG1_CANNOT_BE_FNCT_NULL "Arg 1 cannot be function or null"
+#define ARG2_CANNOT_BE_FNCT_NULL "Arg 2 cannot be function or null"
+#define ARG1_CANNOT_BE_FNCT_NULL_LIST_STR "Arg 1 cannot be function or null or list or string"
+#define ARG2_CANNOT_BE_FNCT_NULL_LIST_STR "Arg 2 cannot be function or null or list or string"
+#define TOO_MANY_PARAMS "Too many parameters in function call"
+#define TOO_FEW_PARAMS "Too few parameters in function call"
+
 // Used for enabling/disabling print statements easily
 // Helpful for error detection
 bool PRINT_RULE = 0;
@@ -18,7 +43,7 @@ int yyerror(const char *s);
 void printTokenInfo(const char* tokenType, const char* lexeme);
 void beginScope();
 void endScope();
-bool findEntryInAnyScope(const string theName);
+TYPE_INFO findEntryInAnyScope(const string theName);
 
 extern "C" 
 {
@@ -51,15 +76,16 @@ extern "C"
 %token  T_NOT T_AND T_OR T_ASSIGN
 
 %type <text> T_IDENT // Associates T_IDENT token with the char* type
-%type <typeInfo> N_CONST N_EXPR N_IF_EXPR N_WHILE_EXPR
+%type <typeInfo> N_CONST N_EXPR_LIST N_EXPR N_IF_EXPR N_WHILE_EXPR
 %type <typeInfo> N_FOR_EXPR N_COMPOUND_EXPR N_ARITHLOGIC_EXPR
 %type <typeInfo> N_ASSIGNMENT_EXPR N_OUTPUT_EXPR N_INPUT_EXPR
 %type <typeInfo> N_LIST_EXPR N_FUNCTION_DEF N_FUNCTION_CALL
-%type <typeInfo> N_QUIT_EXPR N_CONST N_PARAM_LIST N_PARAMS
+%type <typeInfo> N_QUIT_EXPR N_PARAM_LIST N_PARAMS
 %type <typeInfo> N_VAR N_ENTIRE_VAR N_SINGLE_ELEMENT
-%type <typeInfo> N_SIMPLE_ARITHLOGIC N_ADD_OP_LIST N_ADD_OP
-%type <typeInfo> N_TERM N_FACTOR N_MULT_OP_LIST N_MULT_OP
-%type <typeInfo> N_REL_OP
+%type <typeInfo> N_SIMPLE_ARITHLOGIC N_ADD_OP_LIST
+%type <typeInfo> N_TERM N_FACTOR N_MULT_OP_LIST
+%type <typeInfo> N_REL_OP N_INDEX
+%type <integer> N_ADD_OP N_MULT_OP
 
 %nonassoc   T_RPAREN
 %nonassoc   T_ELSE
@@ -233,7 +259,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
             |
             {
             printRule("EXPR_LIST", "epsilon");
-            $$.typeInfo.type = GOES_TO_EPSILON;
+            $$.type = GOES_TO_EPSILON;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
             }
@@ -263,7 +289,7 @@ N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR T_RPAREN N_EXPR
             if($5.type == FUNCTION || $5.type == LIST
               || $5.type == NULL || $5.type == STR)
             {
-              //error call yyerror
+              yyerror(ARG2_CANNOT_BE_FNCT_NULL_LIST_STR);
             }
             else
             {
@@ -275,7 +301,11 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             {
             printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
             string lexeme = string($3);
-            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            TYPE_INFO temp;
+            temp.type = UNDEFINED;
+            temp.numParams = NOT_APPLICABLE;
+            temp.returnType = NOT_APPLICABLE;
+            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(added && PRINT_ADD)
             {
             printf("___Adding %s to symbol table\n", $3);
@@ -309,17 +339,22 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
               TYPE_INFO temp = findEntryInAnyScope(string($1));
               if(temp.type == UNDEFINED)
               {
-                //error
+                // Cannot index into a list that is not yet in the ST
+                yyerror(UNDEFINED_IDENT);
               }
               else if(temp.type != LIST)
               {
-                //error
+                // Cannot index into a variable that is not a list
+                yyerror(ARG1_MUST_BE_LIST);
               }
-              // Check for list here ? ASK DR. LEOPOLD ???
             }
 
             string lexeme = string($1);
-            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, UNDEFINED));
+            TYPE_INFO temp;
+            temp.type = $1.type;
+            temp.numParams = NOT_APPLICABLE;
+            temp.returnType = NOT_APPLICABLE;
+            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(added && PRINT_ADD)
             {
             printf("___Adding %s to symbol table\n", $1);
@@ -327,8 +362,12 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             }
             T_ASSIGN N_EXPR
             {
+              if($1.type == LIST && $5.type == LIST)
+              {
+                // No lists of lists allowed
+                yyerror(ARG2_CANNOT_BE_LIST);
+              }
               $$.type = $5.type;
-              // Check for list here ? ASK DR. LEOPOLD ???
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -353,7 +392,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             printRule("OUTPUT_EXPR", "PRINT ( EXPR )");
             if($3.type == FUNCTION || $3.type == NULL)
             {
-              //error
+              yyerror(ARG1_CANNOT_BE_FNCT_NULL);
             }
             $$.type = $3.type;
             }
@@ -399,6 +438,8 @@ N_PARAMS    : T_IDENT
             string lexeme = string($1);
             TYPE_INFO temp;
             temp.type = INT;
+            temp.numParams = NOT_APPLICABLE;
+            temp.returnType = NOT_APPLICABLE;
             if(PRINT_ADD)
             {
               printf("___Adding %s to symbol table\n", $1);
@@ -406,7 +447,7 @@ N_PARAMS    : T_IDENT
             bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(!success)
             {
-              yyerror("Multiply defined identifier");
+              yyerror(MULTPLY_DEFINED_IDENT);
               exit(1);
             }
             }
@@ -416,6 +457,8 @@ N_PARAMS    : T_IDENT
             string lexeme = string($1);
             TYPE_INFO temp;
             temp.type = INT;
+            temp.numParams = NOT_APPLICABLE;
+            temp.returnType = NOT_APPLICABLE;
             if(PRINT_ADD)
             {
               printf("___Adding %s to symbol table\n", $1);
@@ -423,7 +466,7 @@ N_PARAMS    : T_IDENT
             bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(!success)
             {
-              yyerror("Multiply defined identifier");
+              yyerror(MULTPLY_DEFINED_IDENT);
               exit(1);
             }
             }
@@ -435,10 +478,10 @@ N_FUNCTION_CALL : T_IDENT
             {
             printRule("FUNCTION_CALL", "IDENT ( ARG_LIST )");
             string lexeme = string($1);
-            bool exists = findEntryInAnyScope(lexeme);
-            if(!exists)
+            TYPE_INFO temp = findEntryInAnyScope(lexeme);
+            if(temp.type == UNDEFINED)
             {
-              yyerror("Undefined identifier");
+              yyerror(UNDEFINED_IDENT);
               exit(1);
             }
             }
@@ -473,120 +516,225 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             | N_SIMPLE_ARITHLOGIC N_REL_OP N_SIMPLE_ARITHLOGIC
             {
             printRule("ARITHLOGIC_EXPR", "SIMPLE_ARITHLOGIC REL_OP SIMPLE_ARITHLOGIC");
+            $$.type = BOOL;
             }
             ;
 N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             {
             printRule("SIMPLE_ARITHLOGIC", "TERM ADD_OP_LIST");
-            if($2.type == GOES_TO_EPSILON)
+            if($2.type == NOT_APPLICABLE)
             {
               $$.type = $1.type;
             }
             else
             {
               // check arg1 and arg2
+              if($2.type == BOOL)
+              {
+                $$.type = BOOL;
+              }
+              else if($1.type == FLOAT || $2.type == FLOAT)
+              {
+                $$.type = FLOAT;
+              }
+              else if($1.type == INT && $2.type == INT)
+              {
+                $$.type = INT;
+              }
             }
             }
             ;
 N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             {
             printRule("ADD_OP_LIST", "ADD_OP TERM ADD_OP_LIST");
-            //if($1.type == //) global arith vs rel operators var???
+            if($1 == ARITHMETIC_OP)
+            {
+              //check arg1 and arg2
+              if($3.type == NOT_APPLICABLE)
+              {
+                $$.type = $2.type;
+              }
+              else
+              {
+                if($3.type == BOOL)
+                {
+                  $$.type = BOOL;
+                }
+                else if($2.type == FLOAT || $3.type == FLOAT)
+                {
+                  $$.type = FLOAT;
+                }
+                else if($2.type == INT && $3.type == INT)
+                {
+                  $$.type = INT;
+                }
+              }
+            }
+            else if($1 == LOGICAL_OP)
+            {
+              $$.type = BOOL;
+            }
             }
             |
             {
             printRule("ADD_OP_LIST", "epsilon");
-            $$.type = GOES_TO_EPSILON;
+            $$.type = NOT_APPLICABLE;
             }
             ;
 N_TERM      : N_FACTOR N_MULT_OP_LIST
             {
             printRule("TERM", "FACTOR MULT_OP_LIST");
+            if($2.type == NOT_APPLICABLE)
+            {
+              $$.type = $1.type;
+            }
+            else
+            {
+              //check arg1 and arg2
+              if($2.type == BOOL)
+              {
+                $$.type = BOOL;
+              }
+              else if($1.type == FLOAT || $2.type == FLOAT)
+              {
+                $$.type = FLOAT;
+              }
+              else if($1.type == INT && $2.type == INT)
+              {
+                $$.type = INT;
+              }
+            }
             }
             ;
 N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
             {
             printRule("MULT_OP_LIST", "MULT_OP FACTOR MULT_OP_LIST");
+            if($1 == ARITHMETIC_OP)
+            {
+              //check arg 1 and arg 2
+              if($3.type == NOT_APPLICABLE)
+              {
+                $$.type = $2.type;
+              }
+              else
+              {
+                if($3.type == BOOL)
+                {
+                  $$.type = BOOL;
+                }
+                else if($2.type == FLOAT || $3.type == FLOAT)
+                {
+                  $$.type = FLOAT;
+                }
+                else if($2.type == INT && $3.type == INT)
+                {
+                  $$.type = INT;
+                }
+              }
+            }
+            else if($1 == LOGICAL_OP)
+            {
+              $$.type = BOOL;
+            }
             }
             |
             {
             printRule("MULT_OP_LIST", "epsilon");
+            $$.type = NOT_APPLICABLE;
             }
             ;
 N_FACTOR    : N_VAR
             {
             printRule("FACTOR", "VAR");
+            $$.type = $1.type;
             }
             | N_CONST
             {
             printRule("FACTOR", "CONST");
+            $$.type = $1.type;
             }
             | T_LPAREN N_EXPR T_RPAREN
             {
             printRule("FACTOR", "( EXPR )");
+            $$.type = $2.type;
             }
             | T_NOT N_FACTOR
             {
             printRule("FACTOR", "! FACTOR");
+            $$.type = $2.type;
             }
             ;
 N_ADD_OP    : T_ADD
             {
             printRule("ADD_OP", "+");
+            $$ = ARITHMETIC_OP;
             }
             | T_SUB
             {
             printRule("ADD_OP", "-");
+            $$ = ARITHMETIC_OP;
             }
             | T_OR
             {
             printRule("ADD_OP", "|");
+            $$ = LOGICAL_OP;
             }
             ;
 N_MULT_OP   : T_MULT
             {
             printRule("MULT_OP", "*");
+            $$ = ARITHMETIC_OP;
             }
             | T_DIV
             {
             printRule("MULT_OP", "/");
+            $$ = ARITHMETIC_OP;
             }
             | T_AND
             {
             printRule("MULT_OP", "&");
+            $$ = LOGICAL_OP;
             }
             | T_MOD
             {
             printRule("MULT_OP", "%%");
+            $$ = ARITHMETIC_OP;
             }
             | T_POW
             {
             printRule("MULT_OP", "^");
+            $$ = ARITHMETIC_OP;
             }
             ;
 N_REL_OP    : T_LT
             {
             printRule("REL_OP", "<");
+            $$ = RELATIONAL_OP;
             }
             | T_GT
             {
             printRule("REL_OP", ">");
+            $$ = RELATIONAL_OP;
             }
             | T_LE
             {
             printRule("REL_OP", "<=");
+            $$ = RELATIONAL_OP;
             }
             | T_GE
             {
             printRule("REL_OP", ">=");
+            $$ = RELATIONAL_OP;
             }
             | T_EQ
             {
             printRule("REL_OP", "==");
+            $$ = RELATIONAL_OP;
             }
             | T_NE
             {
             printRule("REL_OP", "!=");
+            $$ = RELATIONAL_OP;
             }
             ;
 N_VAR       : N_ENTIRE_VAR
@@ -608,12 +756,13 @@ N_SINGLE_ELEMENT    : T_IDENT
             TYPE_INFO temp = findEntryInAnyScope(lexeme);
             if(temp.type == UNDEFINED)
             {
-              yyerror("Undefined identifier");
+              yyerror(UNDEFINED_IDENT);
               exit(1);
             }
             else if(temp.type != LIST)
             {
-              //error to be indexing a non-list
+              // Cannot index into a variable that is not a list
+              yyerror(ARG1_MUST_BE_LIST);
             }
             else
             {
@@ -625,10 +774,10 @@ N_ENTIRE_VAR    : T_IDENT
             {
             printRule("ENTIRE_VAR", "IDENT");
             string lexeme = string($1);
-            bool exists = findEntryInAnyScope(lexeme);
-            if(!exists)
+            TYPE_INFO temp = findEntryInAnyScope(lexeme);
+            if(temp.type == UNDEFINED)
             {
-              yyerror("Undefined identifier");
+              yyerror(UNDEFINED_IDENT);
               exit(1);
             }
             $$.type = $1.type;
