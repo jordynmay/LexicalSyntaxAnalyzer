@@ -3,9 +3,9 @@
 #include <stack>
 #include "SymbolTable.h"
 
-#define ARITHMETIC_OP -10
-#define LOGICAL_OP -11
-#define RELATIONAL_OP -12
+#define ARITHMETIC_OP 100
+#define LOGICAL_OP 101
+#define RELATIONAL_OP 102
 
 #define UNDEFINED_IDENT "Undefined identifier"
 #define MULTPLY_DEFINED_IDENT "Multiply defined identifier"
@@ -44,6 +44,10 @@ void printTokenInfo(const char* tokenType, const char* lexeme);
 void beginScope();
 void endScope();
 TYPE_INFO findEntryInAnyScope(const string theName);
+bool isIntCompatible(const int typeval);
+bool isFloatCompatible(const int typeval);
+bool isBoolCompatible(const int typeval);
+bool isIntOrFloatOrBoolCompatible(const int typeval);
 
 extern "C" 
 {
@@ -58,6 +62,8 @@ extern "C"
 %union
 {
   char* text;
+  int number;
+  bool flag = false;
   TYPE_INFO typeInfo;
 };
 
@@ -84,8 +90,8 @@ extern "C"
 %type <typeInfo> N_VAR N_ENTIRE_VAR N_SINGLE_ELEMENT
 %type <typeInfo> N_SIMPLE_ARITHLOGIC N_ADD_OP_LIST
 %type <typeInfo> N_TERM N_FACTOR N_MULT_OP_LIST
-%type <typeInfo> N_REL_OP N_INDEX
-%type <integer> N_ADD_OP N_MULT_OP
+%type <typeInfo> N_INDEX
+%type <number> N_ADD_OP N_MULT_OP N_REL_OP
 
 %nonassoc   T_RPAREN
 %nonassoc   T_ELSE
@@ -98,6 +104,38 @@ extern "C"
 N_START		: N_EXPR
 			{
 			printRule("START", "EXPR");
+      printf("EXPR type is: ");
+      switch($1.type)
+      {
+        case(NULL_TYPE):
+          printf("NULL");
+          break;
+        case(INT):
+          printf("INT");
+          break;
+        case(STR):
+          printf("STR");
+          break;
+        case(BOOL):
+          printf("BOOL");
+          break;
+        case(FLOAT):
+          printf("FLOAT");
+          break;
+        case(LIST):
+          printf("LIST");
+          break;
+        case(FUNCTION):
+          printf("FUNCTION");
+          break;
+        case(INT_OR_STR_OR_FLOAT_OR_BOOL):
+          printf("INT_OR_STR_OR_FLOAT_OR_BOOL");
+          break;
+        default:
+          printf("%d", $1.type);
+      }
+      //string expr_type = string($1.type);
+      //printf("EXPR type is: %s", expr_type);
       endScope();
 			printf("\n---- Completed parsing ----\n\n");
 			}
@@ -283,18 +321,18 @@ N_THEN_EXPR : N_EXPR
             printRule("THEN_EXPR", "EXPR");
             }
             ;
-N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR T_RPAREN N_EXPR
+N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR
+            {
+            if($3.type == FUNCTION || $3.type == LIST
+              || $3.type == NULL_TYPE || $3.type == STR)
+            {
+              yyerror(ARG1_CANNOT_BE_FNCT_NULL_LIST_STR);
+            }
+            }
+            T_RPAREN N_EXPR
             {
             printRule("WHILE_EXPR", "WHILE ( EXPR ) EXPR");
-            if($5.type == FUNCTION || $5.type == LIST
-              || $5.type == NULL || $5.type == STR)
-            {
-              yyerror(ARG2_CANNOT_BE_FNCT_NULL_LIST_STR);
-            }
-            else
-            {
-              $$.type = $5.type;
-            }
+            $$.type = $6.type;
             }
             ;
 N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
@@ -336,6 +374,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
         
             if($2.type != GOES_TO_EPSILON)
             {
+              $<flag>$ = true;
               TYPE_INFO temp = findEntryInAnyScope(string($1));
               if(temp.type == UNDEFINED)
               {
@@ -348,10 +387,17 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                 yyerror(ARG1_MUST_BE_LIST);
               }
             }
-
+            }
+            T_ASSIGN N_EXPR
+            {
+            if($<flag>3 && $5.type == LIST)
+            {
+              // No lists of lists allowed
+              yyerror(ARG2_CANNOT_BE_LIST);
+            }
             string lexeme = string($1);
             TYPE_INFO temp;
-            temp.type = $1.type;
+            temp.type = $5.type;
             temp.numParams = NOT_APPLICABLE;
             temp.returnType = NOT_APPLICABLE;
             bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
@@ -359,15 +405,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             {
             printf("___Adding %s to symbol table\n", $1);
             }
-            }
-            T_ASSIGN N_EXPR
-            {
-              if($1.type == LIST && $5.type == LIST)
-              {
-                // No lists of lists allowed
-                yyerror(ARG2_CANNOT_BE_LIST);
-              }
-              $$.type = $5.type;
+            $$.type = $5.type;
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -383,14 +421,14 @@ N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
 N_QUIT_EXPR : T_QUIT T_LPAREN T_RPAREN
             {
             printRule("QUIT_EXPR", "QUIT()");
-            $$.type = NULL;
+            $$.type = NULL_TYPE;
             exit(1);
             }
             ;
 N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             {
             printRule("OUTPUT_EXPR", "PRINT ( EXPR )");
-            if($3.type == FUNCTION || $3.type == NULL)
+            if($3.type == FUNCTION || $3.type == NULL_TYPE)
             {
               yyerror(ARG1_CANNOT_BE_FNCT_NULL);
             }
@@ -399,7 +437,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             | T_CAT T_LPAREN N_EXPR T_RPAREN
             {
             printRule("OUTPUT_EXPR", "CAT ( EXPR )");
-            $$.type = NULL;
+            $$.type = NULL_TYPE;
             }
             ;
 N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
@@ -512,10 +550,21 @@ N_ARGS      : N_EXPR
 N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             {
             printRule("ARITHLOGIC_EXPR", "SIMPLE_ARITHLOGIC");
+            $$.type = $1.type;
+            //printf("made it here");
             }
             | N_SIMPLE_ARITHLOGIC N_REL_OP N_SIMPLE_ARITHLOGIC
             {
             printRule("ARITHLOGIC_EXPR", "SIMPLE_ARITHLOGIC REL_OP SIMPLE_ARITHLOGIC");
+            //check $1 and $3, must be int, float, or bool. if not, error
+            if(!isIntOrFloatOrBoolCompatible($1.type))
+            {
+              yyerror(ARG1_MUST_BE_INT_FLOAT_BOOL);
+            }
+            else if(!isIntOrFloatOrBoolCompatible($3.type))
+            {
+              yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
+            }
             $$.type = BOOL;
             }
             ;
@@ -528,18 +577,22 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             }
             else
             {
-              // check arg1 and arg2
-              if($2.type == BOOL)
+              //check arg1 and arg2
+              if(isBoolCompatible($2.type))
               {
                 $$.type = BOOL;
               }
-              else if($1.type == FLOAT || $2.type == FLOAT)
+              else if(isIntCompatible($1.type) && isIntCompatible($2.type))
+              {
+                $$.type = INT;
+              }
+              else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
               {
                 $$.type = FLOAT;
               }
-              else if($1.type == INT && $2.type == INT)
+              else
               {
-                $$.type = INT;
+                $$.type = $1.type;
               }
             }
             }
@@ -556,17 +609,17 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
               }
               else
               {
-                if($3.type == BOOL)
+                if(isIntCompatible($2.type) && isIntCompatible($3.type))
                 {
-                  $$.type = BOOL;
+                  $$.type = INT;
                 }
-                else if($2.type == FLOAT || $3.type == FLOAT)
+                else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
                 {
                   $$.type = FLOAT;
                 }
-                else if($2.type == INT && $3.type == INT)
+                else
                 {
-                  $$.type = INT;
+                  $$.type = $2.type;
                 }
               }
             }
@@ -591,17 +644,21 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
             else
             {
               //check arg1 and arg2
-              if($2.type == BOOL)
+              if(isBoolCompatible($2.type))
               {
                 $$.type = BOOL;
               }
-              else if($1.type == FLOAT || $2.type == FLOAT)
+              else if(isIntCompatible($1.type) && isIntCompatible($2.type))
+              {
+                $$.type = INT;
+              }
+              else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
               {
                 $$.type = FLOAT;
               }
-              else if($1.type == INT && $2.type == INT)
+              else
               {
-                $$.type = INT;
+                $$.type = $1.type;
               }
             }
             }
@@ -611,26 +668,30 @@ N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
             printRule("MULT_OP_LIST", "MULT_OP FACTOR MULT_OP_LIST");
             if($1 == ARITHMETIC_OP)
             {
-              //check arg 1 and arg 2
+              //check arg1 and arg2
               if($3.type == NOT_APPLICABLE)
               {
                 $$.type = $2.type;
               }
               else
               {
-                if($3.type == BOOL)
-                {
-                  $$.type = BOOL;
-                }
-                else if($2.type == FLOAT || $3.type == FLOAT)
-                {
-                  $$.type = FLOAT;
-                }
-                else if($2.type == INT && $3.type == INT)
+                if(isIntCompatible($2.type) && isIntCompatible($3.type))
                 {
                   $$.type = INT;
                 }
+                else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
+                {
+                  $$.type = FLOAT;
+                }
+                else
+                {
+                  $$.type = $2.type;
+                }
               }
+            }
+            else if($1 == LOGICAL_OP)
+            {
+              $$.type = BOOL;
             }
             else if($1 == LOGICAL_OP)
             {
@@ -780,7 +841,7 @@ N_ENTIRE_VAR    : T_IDENT
               yyerror(UNDEFINED_IDENT);
               exit(1);
             }
-            $$.type = $1.type;
+            $$.type = temp.type;
             }
             ;
 
@@ -841,7 +902,11 @@ void endScope()
 // Looks through all symbol tables in the global stack
 TYPE_INFO findEntryInAnyScope(const string theName)
 {
-  if(scopeStack.empty()) return(UNDEFINED);
+  TYPE_INFO temp2;
+  temp2.type = UNDEFINED;
+  temp2.numParams = NOT_APPLICABLE;
+  temp2.returnType = NOT_APPLICABLE;
+  if(scopeStack.empty()) return(temp2);
   TYPE_INFO temp = scopeStack.top().findEntry(theName);
   if(temp.type != UNDEFINED)
   {
@@ -854,6 +919,55 @@ TYPE_INFO findEntryInAnyScope(const string theName)
     temp = findEntryInAnyScope(theName);
     scopeStack.push(symbolTable);
     return(temp);
+  }
+}
+
+bool isIntCompatible(const int typeval)
+{
+  if(typeval == INT || typeval == BOOL || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool isFloatCompatible(const int typeval)
+{
+  if(typeval == FLOAT || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool isBoolCompatible(const int typeval)
+{
+  if(typeval == BOOL || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool isIntOrFloatOrBoolCompatible(const int typeval)
+{
+  if(typeval == INT || typeval == FLOAT || typeval == BOOL
+    || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
   }
 }
 

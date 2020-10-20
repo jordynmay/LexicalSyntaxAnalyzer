@@ -8,7 +8,7 @@ using namespace std;
 #define NOT_APPLICABLE -3
 #define GOES_TO_EPSILON -2
 #define UNDEFINED -1
-#define NULL 0
+#define NULL_TYPE 0
 #define INT 1
 #define STR 2
 #define BOOL 3
@@ -41,8 +41,8 @@ public:
   {
     name = "";
     typeInfo.type = UNDEFINED;
-    typeInfo.numParams = 0;
-    typeInfo.returnType = 0;
+    typeInfo.numParams = UNDEFINED;
+    typeInfo.returnType = UNDEFINED;
   }
 
   SYMBOL_TABLE_ENTRY(const string theName, const TYPE_INFO theType)
