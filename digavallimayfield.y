@@ -131,8 +131,20 @@ N_START		: N_EXPR
         case(INT_OR_STR_OR_FLOAT_OR_BOOL):
           printf("INT_OR_STR_OR_FLOAT_OR_BOOL");
           break;
+        case(UNDEFINED):
+          printf("UNDEFINED");
+          break;
+        case(NOT_APPLICABLE):
+          printf("NOT_APPLICABLE");
+          break;
+        case(GOES_TO_EPSILON):
+          printf("GOES_TO_EPSILON");
+          break;
         default:
-          printf("%d", $1.type);
+          //string defaulttype = string($1.type);
+          //printf("%s", defaulttype;
+          printf("default");
+          break;
       }
       //string expr_type = string($1.type);
       //printf("EXPR type is: %s", expr_type);
@@ -178,6 +190,7 @@ N_EXPR      : N_IF_EXPR
             | N_ASSIGNMENT_EXPR
             {
             printRule("EXPR", "ASSIGNMENT_EXPR");
+            //printf("1\n");//!!!
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
@@ -185,6 +198,7 @@ N_EXPR      : N_IF_EXPR
             | N_OUTPUT_EXPR
             {
             printRule("EXPR", "OUTPUT_EXPR");
+            //printf("2. output expr\n");//!!!
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
@@ -393,7 +407,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             if($<flag>3 && $5.type == LIST)
             {
               // No lists of lists allowed
-              yyerror(ARG2_CANNOT_BE_LIST);
+              yyerror(ARG1_CANNOT_BE_LIST);
             }
             string lexeme = string($1);
             TYPE_INFO temp;
@@ -433,10 +447,15 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               yyerror(ARG1_CANNOT_BE_FNCT_NULL);
             }
             $$.type = $3.type;
+            //printf("1. in print\n"); //!!!
             }
             | T_CAT T_LPAREN N_EXPR T_RPAREN
             {
             printRule("OUTPUT_EXPR", "CAT ( EXPR )");
+            if($3.type == FUNCTION || $3.type == NULL_TYPE)
+            {
+              yyerror(ARG1_CANNOT_BE_FNCT_NULL);
+            }
             $$.type = NULL_TYPE;
             }
             ;
@@ -577,8 +596,13 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             }
             else
             {
+              if(!isIntOrFloatOrBoolCompatible($1.type))
+              {
+                yyerror(ARG1_MUST_BE_INT_FLOAT_BOOL);
+              }//!!!
               //check arg1 and arg2
-              if(isBoolCompatible($2.type))
+              //ASK DR. LEOPOLD -- just checking add op list for bool? or both?
+              if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
               {
                 $$.type = BOOL;
               }
@@ -600,6 +624,10 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
 N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             {
             printRule("ADD_OP_LIST", "ADD_OP TERM ADD_OP_LIST");
+            if(!isIntOrFloatOrBoolCompatible($2.type))
+            {
+              yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
+            }//!!!
             if($1 == ARITHMETIC_OP)
             {
               //check arg1 and arg2
@@ -643,8 +671,13 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
             }
             else
             {
+              if(!isIntOrFloatOrBoolCompatible($1.type))
+              {
+                yyerror(ARG1_MUST_BE_INT_FLOAT_BOOL);
+              }//!!!
               //check arg1 and arg2
-              if(isBoolCompatible($2.type))
+              //ASK DR. LEOPOLD -- just checking mult op list for bool? or both?
+              if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
               {
                 $$.type = BOOL;
               }
@@ -666,6 +699,12 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
 N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
             {
             printRule("MULT_OP_LIST", "MULT_OP FACTOR MULT_OP_LIST");
+            if(!isIntOrFloatOrBoolCompatible($2.type))
+            {
+              //printf("right before error\n");//!!!
+              //printf("factor type is: %d\n", $2.type);//!!!
+              yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
+            }//!!!
             if($1 == ARITHMETIC_OP)
             {
               //check arg1 and arg2
@@ -688,10 +727,6 @@ N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
                   $$.type = $2.type;
                 }
               }
-            }
-            else if($1 == LOGICAL_OP)
-            {
-              $$.type = BOOL;
             }
             else if($1 == LOGICAL_OP)
             {
@@ -825,10 +860,9 @@ N_SINGLE_ELEMENT    : T_IDENT
               // Cannot index into a variable that is not a list
               yyerror(ARG1_MUST_BE_LIST);
             }
-            else
-            {
-              $$.type == INT_OR_STR_OR_FLOAT_OR_BOOL;
-            }
+            $$.type = INT_OR_STR_OR_FLOAT_OR_BOOL;
+            //printf("setting to intorstr...\n");//!!!
+            //printf("single elem type is: %d",$$.type);
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
