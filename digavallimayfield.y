@@ -3,10 +3,13 @@
 #include <stack>
 #include "SymbolTable.h"
 
+// Used to distinguish whether an operator is arithmetic, logical, or relational
+// Helps to determine what type the operands should be
 #define ARITHMETIC_OP 100
 #define LOGICAL_OP 101
 #define RELATIONAL_OP 102
 
+// Error message strings for each supported error
 #define UNDEFINED_IDENT "Undefined identifier"
 #define MULTPLY_DEFINED_IDENT "Multiply defined identifier"
 #define ARG1_MUST_BE_INT "Arg 1 must be integer"
@@ -141,13 +144,9 @@ N_START		: N_EXPR
           printf("GOES_TO_EPSILON");
           break;
         default:
-          //string defaulttype = string($1.type);
-          //printf("%s", defaulttype;
-          printf("default");
+          printf("DEFAULT");
           break;
       }
-      //string expr_type = string($1.type);
-      //printf("EXPR type is: %s", expr_type);
       endScope();
 			printf("\n---- Completed parsing ----\n\n");
 			}
@@ -190,7 +189,6 @@ N_EXPR      : N_IF_EXPR
             | N_ASSIGNMENT_EXPR
             {
             printRule("EXPR", "ASSIGNMENT_EXPR");
-            //printf("1\n");//!!!
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
@@ -198,7 +196,6 @@ N_EXPR      : N_IF_EXPR
             | N_OUTPUT_EXPR
             {
             printRule("EXPR", "OUTPUT_EXPR");
-            //printf("2. output expr\n");//!!!
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
@@ -353,11 +350,7 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             {
             printRule("FOR_EXPR", "FOR ( IDENT IN EXPR ) EXPR");
             string lexeme = string($3);
-            TYPE_INFO temp;
-            temp.type = UNDEFINED;
-            temp.numParams = NOT_APPLICABLE;
-            temp.returnType = NOT_APPLICABLE;
-            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
+            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, {UNDEFINED, NOT_APPLICABLE, NOT_APPLICABLE}));
             if(added && PRINT_ADD)
             {
             printf("___Adding %s to symbol table\n", $3);
@@ -410,15 +403,13 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
               yyerror(ARG1_CANNOT_BE_LIST);
             }
             string lexeme = string($1);
-            TYPE_INFO temp;
-            temp.type = $5.type;
-            temp.numParams = NOT_APPLICABLE;
-            temp.returnType = NOT_APPLICABLE;
+            TYPE_INFO temp = $5; //!!! should ident's type be temp's type or undefined? 
             bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(added && PRINT_ADD)
             {
             printf("___Adding %s to symbol table\n", $1);
             }
+            // N_ASSIGNMENT_EXPR type is the type of N_EXPR
             $$.type = $5.type;
             }
             ;
@@ -447,7 +438,6 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               yyerror(ARG1_CANNOT_BE_FNCT_NULL);
             }
             $$.type = $3.type;
-            //printf("1. in print\n"); //!!!
             }
             | T_CAT T_LPAREN N_EXPR T_RPAREN
             {
@@ -472,6 +462,8 @@ N_FUNCTION_DEF  : T_FUNCTION
             {
             printRule("FUNCTION_DEF", "FUNCTION ( PARAM_LIST ) COMPOUND_EXPR");
             $$.type = FUNCTION;
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
             endScope();
             }
             ;
@@ -570,12 +562,11 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             {
             printRule("ARITHLOGIC_EXPR", "SIMPLE_ARITHLOGIC");
             $$.type = $1.type;
-            //printf("made it here");
             }
             | N_SIMPLE_ARITHLOGIC N_REL_OP N_SIMPLE_ARITHLOGIC
             {
             printRule("ARITHLOGIC_EXPR", "SIMPLE_ARITHLOGIC REL_OP SIMPLE_ARITHLOGIC");
-            //check $1 and $3, must be int, float, or bool. if not, error
+            // Both arguments must be int, float, or bool compatible
             if(!isIntOrFloatOrBoolCompatible($1.type))
             {
               yyerror(ARG1_MUST_BE_INT_FLOAT_BOOL);
@@ -584,6 +575,7 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             {
               yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
             }
+            // Resulting type is a bool because a relational operator was used
             $$.type = BOOL;
             }
             ;
@@ -596,20 +588,26 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             }
             else
             {
+              // Both arguments must be int, float, or bool compatible
               if(!isIntOrFloatOrBoolCompatible($1.type))
               {
                 yyerror(ARG1_MUST_BE_INT_FLOAT_BOOL);
-              }//!!!
-              //check arg1 and arg2
-              //ASK DR. LEOPOLD -- just checking add op list for bool? or both?
+              }
+              if(!isIntOrFloatOrBoolCompatible($2.type))
+              {
+                yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
+              }
+              // If both operands are bool compatible, resulting type is bool
               if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
               {
                 $$.type = BOOL;
               }
+              // If both operands are int compatible, resulting type is int
               else if(isIntCompatible($1.type) && isIntCompatible($2.type))
               {
                 $$.type = INT;
               }
+              // If one operand is float compatible, resulting type is float
               else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
               {
                 $$.type = FLOAT;
@@ -624,23 +622,26 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
 N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             {
             printRule("ADD_OP_LIST", "ADD_OP TERM ADD_OP_LIST");
+            // Argument must be int, float, or bool compatible
             if(!isIntOrFloatOrBoolCompatible($2.type))
             {
               yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
-            }//!!!
+            }
+            // If an arithmetic operator is used, resulting type is int or float
             if($1 == ARITHMETIC_OP)
             {
-              //check arg1 and arg2
               if($3.type == NOT_APPLICABLE)
               {
                 $$.type = $2.type;
               }
               else
               {
+                // If both operands are int compatible, resulting type is int
                 if(isIntCompatible($2.type) && isIntCompatible($3.type))
                 {
                   $$.type = INT;
                 }
+                // If one operand is float compatible, resulting type is float
                 else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
                 {
                   $$.type = FLOAT;
@@ -651,6 +652,7 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
                 }
               }
             }
+            // If a logical operator is used, resulting type is bool
             else if($1 == LOGICAL_OP)
             {
               $$.type = BOOL;
@@ -671,20 +673,26 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
             }
             else
             {
+              // Both arguments must be int, float, or bool compatible
               if(!isIntOrFloatOrBoolCompatible($1.type))
               {
                 yyerror(ARG1_MUST_BE_INT_FLOAT_BOOL);
-              }//!!!
-              //check arg1 and arg2
-              //ASK DR. LEOPOLD -- just checking mult op list for bool? or both?
+              }
+              if(!isIntOrFloatOrBoolCompatible($2.type))
+              {
+                yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
+              }
+              // If both operands are bool compatible, resulting type is bool
               if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
               {
                 $$.type = BOOL;
               }
+              // If both operands are int compatible, resulting type is int
               else if(isIntCompatible($1.type) && isIntCompatible($2.type))
               {
                 $$.type = INT;
               }
+              // If one operand is float compatible, resulting type is float
               else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
               {
                 $$.type = FLOAT;
@@ -699,25 +707,26 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
 N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
             {
             printRule("MULT_OP_LIST", "MULT_OP FACTOR MULT_OP_LIST");
+            // Argument must be int, float, or bool compatible
             if(!isIntOrFloatOrBoolCompatible($2.type))
             {
-              //printf("right before error\n");//!!!
-              //printf("factor type is: %d\n", $2.type);//!!!
               yyerror(ARG2_MUST_BE_INT_FLOAT_BOOL);
-            }//!!!
+            }
+            // If an arithmetic operator is used, resulting type is int or float
             if($1 == ARITHMETIC_OP)
             {
-              //check arg1 and arg2
               if($3.type == NOT_APPLICABLE)
               {
                 $$.type = $2.type;
               }
               else
               {
+                // If both operands are int compatible, resulting type is int
                 if(isIntCompatible($2.type) && isIntCompatible($3.type))
                 {
                   $$.type = INT;
                 }
+                // If one operand is float compatible, resulting type is float
                 else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
                 {
                   $$.type = FLOAT;
@@ -728,6 +737,7 @@ N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
                 }
               }
             }
+            // If a logical operator is used, resulting type is bool
             else if($1 == LOGICAL_OP)
             {
               $$.type = BOOL;
@@ -743,21 +753,29 @@ N_FACTOR    : N_VAR
             {
             printRule("FACTOR", "VAR");
             $$.type = $1.type;
+            $$.numParams = $1.numParams;
+            $$.returnType = $1.returnType;
             }
             | N_CONST
             {
             printRule("FACTOR", "CONST");
             $$.type = $1.type;
+            $$.numParams = $1.numParams;
+            $$.returnType = $1.returnType;
             }
             | T_LPAREN N_EXPR T_RPAREN
             {
             printRule("FACTOR", "( EXPR )");
             $$.type = $2.type;
+            $$.numParams = $2.numParams;
+            $$.returnType = $2.returnType;
             }
             | T_NOT N_FACTOR
             {
             printRule("FACTOR", "! FACTOR");
             $$.type = $2.type;
+            $$.numParams = $2.numParams;
+            $$.returnType = $2.returnType;
             }
             ;
 N_ADD_OP    : T_ADD
@@ -837,11 +855,15 @@ N_VAR       : N_ENTIRE_VAR
             {
             printRule("VAR", "ENTIRE_VAR");
             $$.type = $1.type;
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
             }
             | N_SINGLE_ELEMENT
             {
             printRule("VAR", "SINGLE_ELEMENT");
             $$.type = $1.type;
+            $$.numParams = $1.numParams;
+            $$.returnType = $1.returnType;
             }
             ;
 N_SINGLE_ELEMENT    : T_IDENT
@@ -850,6 +872,7 @@ N_SINGLE_ELEMENT    : T_IDENT
             printRule("SINGLE_ELEMENT", "IDENT [[ EXPR ]]");
             string lexeme = string($1);
             TYPE_INFO temp = findEntryInAnyScope(lexeme);
+            // T_IDENT must already exist in some ST
             if(temp.type == UNDEFINED)
             {
               yyerror(UNDEFINED_IDENT);
@@ -861,8 +884,8 @@ N_SINGLE_ELEMENT    : T_IDENT
               yyerror(ARG1_MUST_BE_LIST);
             }
             $$.type = INT_OR_STR_OR_FLOAT_OR_BOOL;
-            //printf("setting to intorstr...\n");//!!!
-            //printf("single elem type is: %d",$$.type);
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
@@ -870,12 +893,15 @@ N_ENTIRE_VAR    : T_IDENT
             printRule("ENTIRE_VAR", "IDENT");
             string lexeme = string($1);
             TYPE_INFO temp = findEntryInAnyScope(lexeme);
+            // T_IDENT must already exist in some ST
             if(temp.type == UNDEFINED)
             {
               yyerror(UNDEFINED_IDENT);
               exit(1);
             }
             $$.type = temp.type;
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
             }
             ;
 
