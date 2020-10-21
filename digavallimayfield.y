@@ -438,6 +438,8 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               yyerror(ARG1_CANNOT_BE_FNCT_NULL);
             }
             $$.type = $3.type;
+            $$.numParams = $3.numParams;
+            $$.returnType = $3.returnType;
             }
             | T_CAT T_LPAREN N_EXPR T_RPAREN
             {
@@ -447,6 +449,8 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               yyerror(ARG1_CANNOT_BE_FNCT_NULL);
             }
             $$.type = NULL_TYPE;
+            $$.numParams = $3.numParams;
+            $$.returnType = $3.returnType;
             }
             ;
 N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
