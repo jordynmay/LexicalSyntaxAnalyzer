@@ -16,6 +16,7 @@ using namespace std;
 #define LIST 5
 #define FUNCTION 6
 #define INT_OR_STR_OR_FLOAT_OR_BOOL 7
+#define INT_OR_STR_OR_FLOAT 8
 
 
 typedef struct
