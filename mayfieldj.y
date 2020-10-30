@@ -26,6 +26,7 @@
 #define DEFAULT_ERROR 214
 
 const int NUM_ERR_MESSAGES = 15;
+int numArgs = 0;
 
 // Error message strings for each supported error
 const string ERR_MSG[NUM_ERR_MESSAGES] = {
@@ -66,6 +67,8 @@ void semanticError(const int argNum, const int errNum);
 bool isIntCompatible(const int typeval);
 bool isFloatCompatible(const int typeval);
 bool isBoolCompatible(const int typeval);
+bool isStrCompatible(const int typeval);
+bool isListCompatible(const int typeval);
 bool isIntOrFloatOrBoolCompatible(const int typeval);
 bool isIntOrStrOrFloatOrBoolCompatible(const int typeval);
 
@@ -84,6 +87,7 @@ extern "C"
   char* text;
   int number;
   bool flag = false;
+  int num;
   TYPE_INFO typeInfo;
 };
 
@@ -333,11 +337,6 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
 N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             {
             printRule("IF_EXPR", "COND_IF ) THEN_EXPR");
-            if($1.type == FUNCTION || $1.type == LIST 
-            || $1.type == NULL_TYPE || $1.type == STR)
-            {
-              semanticError(1, CANNOT_BE_FNCT_NULL_LIST_STR);
-            }
             if($3.type == FUNCTION)
             {
               semanticError(2, CANNOT_BE_FNCT);
@@ -345,34 +344,48 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             $$.type = $3.type;
             $$.numParams = $3.numParams;
             $$.returnType = $3.returnType;
+            $$.isParam = $3.isParam;
             }
             | N_COND_IF T_RPAREN N_THEN_EXPR T_ELSE N_EXPR
             {
             printRule("IF_EXPR", "COND_IF ) THEN_EXPR ELSE EXPR");
-            if($1.type == FUNCTION || $1.type == LIST 
-            || $1.type == NULL_TYPE || $1.type == STR)
-            {
-              semanticError(1, CANNOT_BE_FNCT_NULL_LIST_STR);
-            }
             if($3.type == FUNCTION)
             {
               semanticError(2, CANNOT_BE_FNCT);
             }
+            //printf("else type is: %d\n", $5.type);!!!
             if($5.type == FUNCTION)
             {
               semanticError(3, CANNOT_BE_FNCT);
             }
             //!!! assign type based on an or type combo
+            //ASK DR. LEOPOLD
+            $$.type = $3.type;
+            $$.numParams = $3.numParams;
+            $$.returnType = $3.returnType;
+            $$.isParam = $3.isParam;
             }
             ;
 N_COND_IF   : T_IF T_LPAREN N_EXPR
             {
             printRule("COND_IF", "IF ( EXPR");
+            $$.type = $3.type;
+            $$.numParams = $3.numParams;
+            $$.returnType = $3.returnType;
+
+            if($$.type == FUNCTION || $$.type == LIST 
+            || $$.type == NULL_TYPE || $$.type == STR)
+            {
+              semanticError(1, CANNOT_BE_FNCT_NULL_LIST_STR); //!!!okay to check here?
+            }
             }
             ;
 N_THEN_EXPR : N_EXPR
             {
             printRule("THEN_EXPR", "EXPR");
+            $$.type = $1.type;
+            $$.numParams = $1.numParams;
+            $$.returnType = $1.returnType;
             }
             ;
 N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR
@@ -411,15 +424,18 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
               }
             }
             }
-            T_IN N_EXPR T_RPAREN N_EXPR
+            T_IN N_EXPR
             {
             if($6.type != LIST)
             {
               semanticError(2, MUST_BE_LIST);
             }
-            $$.type = $8.type;
-            $$.numParams = $8.numParams;
-            $$.returnType = $8.returnType;
+            }
+            T_RPAREN N_EXPR
+            {
+            $$.type = $9.type;
+            $$.numParams = $9.numParams;
+            $$.returnType = $9.returnType;
             }
             ;
 N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
@@ -442,41 +458,57 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             {
             printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
-        
-            if($2.type != GOES_TO_EPSILON)
+            string lexeme = string($1);
+            TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
+            if(temp.type == UNDEFINED)
+            {
+              if(PRINT_ADD)
+              {
+                printf("___Adding %s to symbol table\n", $1);
+              }
+              TYPE_INFO temp2 = {NOT_APPLICABLE, NOT_APPLICABLE, NOT_APPLICABLE, false};
+              bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
+              $<flag>$ = false;
+            }
+            else
             {
               $<flag>$ = true;
-              TYPE_INFO temp = findEntryInAnyScope(string($1));
-              if(temp.type == UNDEFINED)
-              {
-                // Cannot index into a list that is not yet in the ST
-                semanticError(-1, UNDEFINED_IDENT);
-              }
-              else if(temp.type != LIST)
-              {
-                // Cannot index into a variable that is not a list
-                semanticError(1, MUST_BE_LIST);
-              }
             }
             }
             T_ASSIGN N_EXPR
             {
-            if($<flag>3 && $5.type == LIST)
+            string lexeme = string($1);
+            TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
+
+            if($2.type != GOES_TO_EPSILON && !isListCompatible(temp.type))
+            {
+              // Cannot index into a variable that is not a list
+              semanticError(1, MUST_BE_LIST);
+            }
+            if($<flag>3)
+            {
+              if(temp.isParam && !isIntCompatible($5.type))
+              {
+                // Parameters must be integers
+                semanticError(1, MUST_BE_INT);
+              }
+              TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
+              scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
+            }
+            else
+            {
+              TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
+              scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
+            }
+            if($2.type != GOES_TO_EPSILON && $5.type == LIST)
             {
               // No lists of lists allowed
               semanticError(1, CANNOT_BE_LIST);
             }
-            string lexeme = string($1);
-            TYPE_INFO temp = $5; //!!! should ident's type be temp's type or undefined? 
-            bool added = scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
-            if(added && PRINT_ADD)
-            {
-            printf("___Adding %s to symbol table\n", $1);
-            }
-            // N_ASSIGNMENT_EXPR type is the type of N_EXPR
             $$.type = $5.type;
             $$.numParams = $5.numParams;
             $$.returnType = $5.returnType;
+            $$.isParam = $5.isParam;
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -529,20 +561,25 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
             ;
 N_FUNCTION_DEF  : T_FUNCTION
             {
+              printRule("FUNCTION_DEF", "FUNCTION ( PARAM_LIST ) COMPOUND_EXPR");
               beginScope();
             }
-            T_LPAREN N_PARAM_LIST T_RPAREN N_COMPOUND_EXPR
+            T_LPAREN N_PARAM_LIST
             {
-            printRule("FUNCTION_DEF", "FUNCTION ( PARAM_LIST ) COMPOUND_EXPR");
-            if($6.type == FUNCTION)
+              $<num>$ = scopeStack.top().getNumParams();
+            }
+            T_RPAREN N_COMPOUND_EXPR
+            {
+            endScope();
+            if($7.type == FUNCTION)
             {
               //yyerror("Arg 2 cannot be function");
               semanticError(2, CANNOT_BE_FNCT);
             }
             $$.type = FUNCTION;
-            $$.numParams = NOT_APPLICABLE; //!!! should be length of param list
-            $$.returnType = $6.type;
-            endScope();
+            $$.numParams = $<num>5; //!!! should be length of param list
+            $$.returnType = $7.type;
+            $$.isParam = false;
             }
             ;
 N_PARAM_LIST    : N_PARAMS
@@ -563,7 +600,7 @@ N_PARAMS    : T_IDENT
             {
             printRule("PARAMS", "IDENT");
             string lexeme = string($1);
-            TYPE_INFO temp = {INT, NOT_APPLICABLE, NOT_APPLICABLE};
+            TYPE_INFO temp = {INT, NOT_APPLICABLE, NOT_APPLICABLE, true};
             if(PRINT_ADD)
             {
               printf("___Adding %s to symbol table\n", $1);
@@ -579,7 +616,7 @@ N_PARAMS    : T_IDENT
             {
             printRule("PARAMS", "IDENT, PARAMS");
             string lexeme = string($1);
-            TYPE_INFO temp = {INT, NOT_APPLICABLE, NOT_APPLICABLE};
+            TYPE_INFO temp = {INT, NOT_APPLICABLE, NOT_APPLICABLE, true};
             if(PRINT_ADD)
             {
               printf("___Adding %s to symbol table\n", $1);
@@ -609,10 +646,19 @@ N_FUNCTION_CALL : T_IDENT
             {
               semanticError(1, MUST_BE_FNCT);
             }
-            //!!! length of arg list must be same as what was declared
+            // Check to make sure there are the correct number of parameters!!!!!
+            if(numArgs > temp.numParams)
+            {
+              semanticError(-1, TOO_MANY_PARAMS);
+            }
+            else if(numArgs < temp.numParams)
+            {
+              semanticError(-1, TOO_FEW_PARAMS);
+            }
             $$.type = temp.returnType;
             $$.numParams = UNDEFINED;
             $$.returnType = UNDEFINED;
+            numArgs = 0;
             }
             ;
 N_ARG_LIST  : N_ARGS
@@ -632,17 +678,21 @@ N_NO_ARGS   :
 N_ARGS      : N_EXPR
             {
             printRule("ARGS", "EXPR");
+            numArgs++;
             if(!isIntCompatible($1.type))
-            {
-              semanticError(1, MUST_BE_INT); //!!! must change arg num
+            {//pass ctr as arg num!!!
+              semanticError(-1, PARAMS_MUST_BE_INT);
+              //semanticError(1, MUST_BE_INT); //!!! must change arg num
             }
             }
             | N_EXPR T_COMMA N_ARGS
             {
             printRule("ARGS", "EXPR, ARGS");
+            numArgs++;
             if(!isIntCompatible($1.type))
             {
-              semanticError(1, MUST_BE_INT); //!!! change to arg num
+              semanticError(-1, PARAMS_MUST_BE_INT);
+              //semanticError(1, MUST_BE_INT); //!!! change to arg num
             }
             }
             ;
@@ -1010,6 +1060,7 @@ N_ENTIRE_VAR    : T_IDENT
             $$.type = temp.type;
             $$.numParams = temp.numParams;
             $$.returnType = temp.returnType;
+            $$.isParam = temp.isParam;
             }
             ;
 
@@ -1074,6 +1125,7 @@ TYPE_INFO findEntryInAnyScope(const string theName)
   temp2.type = UNDEFINED;
   temp2.numParams = NOT_APPLICABLE;
   temp2.returnType = NOT_APPLICABLE;
+  temp2.isParam = false;
   if(scopeStack.empty()) return(temp2);
   TYPE_INFO temp = scopeStack.top().findEntry(theName);
   if(temp.type != UNDEFINED)
@@ -1113,7 +1165,17 @@ void semanticError(const int argNum, const int errNum)
 
 bool isIntCompatible(const int typeval)
 {
-  if(typeval == INT || typeval == BOOL || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  if(typeval == INT || typeval == BOOL || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL
+    || typeval == INT_OR_STR || typeval == INT_OR_BOOL || typeval == INT_OR_FLOAT
+    || typeval == STR_OR_BOOL || typeval == BOOL_OR_FLOAT || typeval == LIST_OR_INT
+    || typeval == LIST_OR_BOOL || typeval == INT_OR_STR_OR_BOOL
+    || typeval == INT_OR_STR_OR_FLOAT || typeval == INT_OR_BOOL_OR_FLOAT
+    || typeval == STR_OR_BOOL_OR_FLOAT || typeval == LIST_OR_INT_OR_STR
+    || typeval == LIST_OR_INT_OR_BOOL || typeval == LIST_OR_INT_OR_FLOAT
+    || typeval == LIST_OR_STR_OR_BOOL || typeval == LIST_OR_BOOL_OR_FLOAT
+    || typeval == LIST_OR_FLOAT_OR_BOOL_OR_STR || typeval == LIST_OR_BOOL_OR_STR_OR_INT
+    || typeval == LIST_OR_FLOAT_OR_STR_OR_INT || typeval == INT_OR_BOOL_OR_FLOAT_OR_LIST
+    || typeval == INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST)
   {
     return true;
   }
@@ -1125,7 +1187,13 @@ bool isIntCompatible(const int typeval)
 
 bool isFloatCompatible(const int typeval)
 {
-  if(typeval == FLOAT || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  if(typeval == FLOAT || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL || typeval == INT_OR_FLOAT
+    || typeval == STR_OR_FLOAT || typeval == BOOL_OR_FLOAT || typeval == LIST_OR_FLOAT
+    || typeval == INT_OR_STR_OR_FLOAT || typeval == INT_OR_BOOL_OR_FLOAT 
+    || typeval == STR_OR_BOOL_OR_FLOAT || typeval == LIST_OR_INT_OR_FLOAT
+    || typeval == LIST_OR_STR_OR_FLOAT || typeval == LIST_OR_BOOL_OR_FLOAT
+    || typeval == LIST_OR_FLOAT_OR_BOOL_OR_STR || typeval == LIST_OR_FLOAT_OR_STR_OR_INT 
+    || typeval == INT_OR_BOOL_OR_FLOAT_OR_LIST || typeval == INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST)
   {
     return true;
   }
@@ -1137,7 +1205,49 @@ bool isFloatCompatible(const int typeval)
 
 bool isBoolCompatible(const int typeval)
 {
-  if(typeval == BOOL || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL)
+  if(typeval == BOOL || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL || typeval == INT_OR_BOOL
+    || typeval == STR_OR_BOOL || typeval == BOOL_OR_FLOAT || typeval == LIST_OR_BOOL
+    || typeval == INT_OR_STR_OR_BOOL || typeval == INT_OR_BOOL_OR_FLOAT
+    || typeval == STR_OR_BOOL_OR_FLOAT || typeval == LIST_OR_INT_OR_BOOL
+    || typeval == LIST_OR_STR_OR_BOOL || typeval == LIST_OR_BOOL_OR_FLOAT
+    || typeval == LIST_OR_FLOAT_OR_BOOL_OR_STR || typeval == LIST_OR_BOOL_OR_STR_OR_INT
+    || typeval == INT_OR_BOOL_OR_FLOAT_OR_LIST || typeval == INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool isStrCompatible(const int typeval)
+{
+  if(typeval == STR || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL || typeval == INT_OR_STR
+    || typeval == STR_OR_BOOL || typeval == STR_OR_FLOAT || typeval == LIST_OR_STR
+    || typeval == INT_OR_STR_OR_BOOL || typeval == INT_OR_STR_OR_FLOAT
+    || typeval == STR_OR_BOOL_OR_FLOAT || typeval == LIST_OR_INT_OR_STR
+    || typeval == LIST_OR_STR_OR_BOOL || typeval == LIST_OR_FLOAT_OR_BOOL_OR_STR
+    || typeval == LIST_OR_BOOL_OR_STR_OR_INT || typeval == LIST_OR_FLOAT_OR_STR_OR_INT
+    || typeval == INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool isListCompatible(const int typeval)
+{
+  if(typeval == LIST || typeval == LIST_OR_INT || typeval == LIST_OR_STR
+    || typeval == LIST_OR_BOOL || typeval == LIST_OR_FLOAT || typeval == LIST_OR_INT_OR_STR
+    || typeval == LIST_OR_INT_OR_BOOL || typeval == LIST_OR_INT_OR_FLOAT
+    || typeval == LIST_OR_STR_OR_BOOL || typeval == LIST_OR_STR_OR_FLOAT
+    || typeval == LIST_OR_BOOL_OR_FLOAT || typeval == LIST_OR_FLOAT_OR_BOOL_OR_STR
+    || typeval == LIST_OR_BOOL_OR_STR_OR_INT || typeval == LIST_OR_FLOAT_OR_STR_OR_INT
+    || typeval == INT_OR_BOOL_OR_FLOAT_OR_LIST || typeval == INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST)
   {
     return true;
   }
@@ -1149,8 +1259,7 @@ bool isBoolCompatible(const int typeval)
 
 bool isIntOrFloatOrBoolCompatible(const int typeval)
 {
-  if(typeval == INT || typeval == FLOAT || typeval == BOOL
-    || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL || typeval == INT_OR_STR_OR_FLOAT)
+  if(isIntCompatible(typeval) || isFloatCompatible(typeval) || isBoolCompatible(typeval))
   {
     return true;
   }
@@ -1162,8 +1271,7 @@ bool isIntOrFloatOrBoolCompatible(const int typeval)
 
 bool isIntOrStrOrFloatOrBoolCompatible(const int typeval)
 {
-  if(typeval == INT || typeval == STR || typeval == FLOAT || typeval == BOOL
-    || typeval == INT_OR_STR_OR_FLOAT_OR_BOOL || typeval == INT_OR_STR_OR_FLOAT)
+  if(isIntOrFloatOrBoolCompatible(typeval) || isStrCompatible(typeval))
   {
     return true;
   }

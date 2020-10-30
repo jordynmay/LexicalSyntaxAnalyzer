@@ -30,6 +30,21 @@ public:
     else return(false);
   }
 
+  void modifyEntry(SYMBOL_TABLE_ENTRY x)
+  {
+    map<string, SYMBOL_TABLE_ENTRY>::iterator itr;
+    if ((itr = hashTable.find(x.getName())) == hashTable.end())
+    {
+      return;
+    }
+    else
+    {
+      hashTable.erase(itr);
+      hashTable.insert(make_pair(x.getName(), x));
+      return;
+    }
+  }
+
   // If a SYMBOL_TABLE_ENTRY with name theName is
   // found in this symbol table, then return true;
   // otherwise, return false.
@@ -40,6 +55,11 @@ public:
     if ((itr = hashTable.find(theName)) == hashTable.end())
       return(temp);
     else return(itr->second.getTypeInfo());
+  }
+
+  int getNumParams()
+  {
+    return(hashTable.size());
   }
 
 };
