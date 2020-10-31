@@ -5,42 +5,42 @@
 using namespace std;
 
 // Type codes
-#define NOT_APPLICABLE -3
-#define GOES_TO_EPSILON -2
-#define UNDEFINED -1
-#define NULL_TYPE 0
-#define INT 1
-#define STR 2
-#define BOOL 3
-#define FLOAT 4
-#define LIST 5
-#define FUNCTION 6
-#define INT_OR_STR 7
-#define INT_OR_BOOL 8
-#define INT_OR_FLOAT 9
-#define STR_OR_BOOL 10
-#define STR_OR_FLOAT 11
-#define BOOL_OR_FLOAT 12
-#define LIST_OR_INT 13
-#define LIST_OR_STR 14
-#define LIST_OR_BOOL 15
-#define LIST_OR_FLOAT 16
-#define INT_OR_STR_OR_BOOL 17
-#define INT_OR_STR_OR_FLOAT 18
-#define INT_OR_BOOL_OR_FLOAT 19
-#define STR_OR_BOOL_OR_FLOAT 20
-#define LIST_OR_INT_OR_STR 21
-#define LIST_OR_INT_OR_BOOL 22
-#define LIST_OR_INT_OR_FLOAT 23
-#define LIST_OR_STR_OR_BOOL 24
-#define LIST_OR_STR_OR_FLOAT 25
-#define LIST_OR_BOOL_OR_FLOAT 26
-#define INT_OR_STR_OR_FLOAT_OR_BOOL 27
-#define LIST_OR_FLOAT_OR_BOOL_OR_STR 28
-#define LIST_OR_BOOL_OR_STR_OR_INT 29
-#define LIST_OR_FLOAT_OR_STR_OR_INT 30
-#define INT_OR_BOOL_OR_FLOAT_OR_LIST 31
-#define INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST 32
+const int NOT_APPLICABLE = -3;
+const int GOES_TO_EPSILON = -2;
+const int UNDEFINED = -1;
+const int NULL_TYPE = 0b000000;
+const int INT = 0b100000;
+const int STR = 0b010000;
+const int BOOL = 0b001000;
+const int FLOAT = 0b000100;
+const int LIST = 0b000010;
+const int FUNCTION = 0b000001;
+const int INT_OR_STR = 0b110000;
+const int INT_OR_BOOL = 0b101000;
+const int INT_OR_FLOAT = 0b100100;
+const int STR_OR_BOOL = 0b011000;
+const int STR_OR_FLOAT = 0b010100;
+const int BOOL_OR_FLOAT = 0b001100;
+const int LIST_OR_INT = 0b100010;
+const int LIST_OR_STR = 0b010010;
+const int LIST_OR_BOOL = 0b001010;
+const int LIST_OR_FLOAT = 0b000110;
+const int INT_OR_STR_OR_BOOL = 0b111000;
+const int INT_OR_STR_OR_FLOAT = 0b110100;
+const int INT_OR_BOOL_OR_FLOAT = 0b101100;
+const int STR_OR_BOOL_OR_FLOAT = 0b011100;
+const int LIST_OR_INT_OR_STR = 0b110010;
+const int LIST_OR_INT_OR_BOOL = 0b101010;
+const int LIST_OR_INT_OR_FLOAT = 0b100110;
+const int LIST_OR_STR_OR_BOOL = 0b011010;
+const int LIST_OR_STR_OR_FLOAT = 0b010110;
+const int LIST_OR_BOOL_OR_FLOAT = 0b001110;
+const int INT_OR_STR_OR_FLOAT_OR_BOOL = 0b111100;
+const int LIST_OR_FLOAT_OR_BOOL_OR_STR = 0b011110;
+const int LIST_OR_BOOL_OR_STR_OR_INT = 0b111010;
+const int LIST_OR_FLOAT_OR_STR_OR_INT = 0b110110;
+const int INT_OR_BOOL_OR_FLOAT_OR_LIST = 0b101110;
+const int INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST = 0b111110;
 
 
 typedef struct

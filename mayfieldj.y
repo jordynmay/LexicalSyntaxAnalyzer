@@ -5,9 +5,9 @@
 
 // Used to distinguish whether an operator is arithmetic, logical, or relational
 // Helps to determine what type the operands should be
-#define ARITHMETIC_OP 100
-#define LOGICAL_OP 101
-#define RELATIONAL_OP 102
+#define ARITHMETIC_OP 101
+#define LOGICAL_OP 102
+#define RELATIONAL_OP 103
 
 #define MUST_BE_INT 200
 #define MUST_BE_LIST 201
@@ -129,7 +129,7 @@ N_START		: N_EXPR
 			{
 			printRule("START", "EXPR");
       printf("EXPR type is: ");
-      switch($1.type) //!!! add new types to the cases
+      switch($1.type)
       {
         case(NULL_TYPE):
           printf("NULL");
@@ -154,6 +154,81 @@ N_START		: N_EXPR
           break;
         case(INT_OR_STR_OR_FLOAT_OR_BOOL):
           printf("INT_OR_STR_OR_FLOAT_OR_BOOL");
+          break;
+        case(INT_OR_STR):
+          printf("INT_OR_STR");
+          break;
+        case(INT_OR_BOOL):
+          printf("INT_OR_BOOL");
+          break;
+        case(INT_OR_FLOAT):
+          printf("INT_OR_FLOAT");
+          break;
+        case(STR_OR_BOOL):
+          printf("STR_OR_BOOL");
+          break;
+        case(STR_OR_FLOAT):
+          printf("STR_OR_FLOAT");
+          break;
+        case(BOOL_OR_FLOAT):
+          printf("BOOL_OR_FLOAT");
+          break;
+        case(LIST_OR_INT):
+          printf("LIST_OR_INT");
+          break;
+        case(LIST_OR_STR):
+          printf("LIST_OR_STR");
+          break;
+        case(LIST_OR_BOOL):
+          printf("LIST_OR_BOOL");
+          break;
+        case(LIST_OR_FLOAT):
+          printf("LIST_OR_FLOAT");
+          break;
+        case(INT_OR_STR_OR_BOOL):
+          printf("INT_OR_STR_OR_BOOL");
+          break;
+        case(INT_OR_STR_OR_FLOAT):
+          printf("INT_OR_STR_OR_FLOAT");
+          break;
+        case(INT_OR_BOOL_OR_FLOAT):
+          printf("INT_OR_BOOL_OR_FLOAT");
+          break;
+        case(STR_OR_BOOL_OR_FLOAT):
+          printf("STR_OR_BOOL_OR_FLOAT");
+          break;
+        case(LIST_OR_INT_OR_STR):
+          printf("LIST_OR_INT_OR_STR");
+          break;
+        case(LIST_OR_INT_OR_BOOL):
+          printf("LIST_OR_INT_OR_BOOL");
+          break;
+        case(LIST_OR_INT_OR_FLOAT):
+          printf("LIST_OR_INT_OR_FLOAT");
+          break;
+        case(LIST_OR_STR_OR_BOOL):
+          printf("LIST_OR_STR_OR_BOOL");
+          break;
+        case(LIST_OR_STR_OR_FLOAT):
+          printf("LIST_OR_STR_OR_FLOAT");
+          break;
+        case(LIST_OR_BOOL_OR_FLOAT):
+          printf("LIST_OR_BOOL_OR_FLOAT");
+          break;
+        case(LIST_OR_FLOAT_OR_BOOL_OR_STR):
+          printf("LIST_OR_FLOAT_OR_BOOL_OR_STR");
+          break;
+        case(LIST_OR_BOOL_OR_STR_OR_INT):
+          printf("LIST_OR_BOOL_OR_STR_OR_INT");
+          break;
+        case(LIST_OR_FLOAT_OR_STR_OR_INT):
+          printf("LIST_OR_FLOAT_OR_STR_OR_INT");
+          break;
+        case(INT_OR_BOOL_OR_FLOAT_OR_LIST):
+          printf("INT_OR_BOOL_OR_FLOAT_OR_LIST");
+          break;
+        case(INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST):
+          printf("INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST");
           break;
         case(UNDEFINED):
           printf("UNDEFINED");
@@ -326,7 +401,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
               $$.returnType = $3.returnType;
             }
             }
-            |
+            | /* epsilon */
             {
             printRule("EXPR_LIST", "epsilon");
             $$.type = GOES_TO_EPSILON;
@@ -337,6 +412,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
 N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             {
             printRule("IF_EXPR", "COND_IF ) THEN_EXPR");
+            // The then expression cannot be a function
             if($3.type == FUNCTION)
             {
               semanticError(2, CANNOT_BE_FNCT);
@@ -349,21 +425,23 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             | N_COND_IF T_RPAREN N_THEN_EXPR T_ELSE N_EXPR
             {
             printRule("IF_EXPR", "COND_IF ) THEN_EXPR ELSE EXPR");
+            // The then or else expressions cannot be functions
             if($3.type == FUNCTION)
             {
               semanticError(2, CANNOT_BE_FNCT);
             }
-            //printf("else type is: %d\n", $5.type);!!!
             if($5.type == FUNCTION)
             {
               semanticError(3, CANNOT_BE_FNCT);
             }
-            //!!! assign type based on an or type combo
-            //ASK DR. LEOPOLD
-            $$.type = $3.type;
-            $$.numParams = $3.numParams;
-            $$.returnType = $3.returnType;
-            $$.isParam = $3.isParam;
+            //printf("$3.type = %d \n$5.type = %d \n ORed type= %d\n", $3.type, $5.type,
+            //$3.type | $5.type);
+            // Assign IF_EXPR's type based on a combination of then and else's types
+            // Since we don't know whether the then or else will execute yet
+            $$.type = $3.type | $5.type; // Bitwise OR
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
+            $$.isParam = $3.isParam || $5.isParam;
             }
             ;
 N_COND_IF   : T_IF T_LPAREN N_EXPR
@@ -376,7 +454,7 @@ N_COND_IF   : T_IF T_LPAREN N_EXPR
             if($$.type == FUNCTION || $$.type == LIST 
             || $$.type == NULL_TYPE || $$.type == STR)
             {
-              semanticError(1, CANNOT_BE_FNCT_NULL_LIST_STR); //!!!okay to check here?
+              semanticError(1, CANNOT_BE_FNCT_NULL_LIST_STR);
             }
             }
             ;
@@ -411,7 +489,7 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             {
               if(!isIntOrStrOrFloatOrBoolCompatible(temp.type))
               {
-                semanticError(1, CANNOT_BE_FNCT_NULL_LIST); //!!!change
+                semanticError(1, CANNOT_BE_FNCT_NULL_LIST);
               }
             }
             else
@@ -426,7 +504,7 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             }
             T_IN N_EXPR
             {
-            if($6.type != LIST)
+            if($6.type != LIST)//!!!
             {
               semanticError(2, MUST_BE_LIST);
             }
@@ -480,7 +558,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             string lexeme = string($1);
             TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
 
-            if($2.type != GOES_TO_EPSILON && !isListCompatible(temp.type))
+            if($2.type != GOES_TO_EPSILON && !isListCompatible(temp.type)) //!!!
             {
               // Cannot index into a variable that is not a list
               semanticError(1, MUST_BE_LIST);
@@ -500,7 +578,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
               TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
               scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
             }
-            if($2.type != GOES_TO_EPSILON && $5.type == LIST)
+            if($2.type != GOES_TO_EPSILON && isListCompatible($5.type))//!!!
             {
               // No lists of lists allowed
               semanticError(1, CANNOT_BE_LIST);
@@ -515,7 +593,7 @@ N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             {
             printRule("INDEX", "[[ EXPR ]]");
             }
-            |
+            | /* epsilon */
             {
             printRule("INDEX", "epsilon");
             $$.type = GOES_TO_EPSILON;
@@ -566,6 +644,7 @@ N_FUNCTION_DEF  : T_FUNCTION
             }
             T_LPAREN N_PARAM_LIST
             {
+              // Number of entries in N_PARAM_LIST aka numParams for the function
               $<num>$ = scopeStack.top().getNumParams();
             }
             T_RPAREN N_COMPOUND_EXPR
@@ -573,13 +652,13 @@ N_FUNCTION_DEF  : T_FUNCTION
             endScope();
             if($7.type == FUNCTION)
             {
-              //yyerror("Arg 2 cannot be function");
               semanticError(2, CANNOT_BE_FNCT);
             }
             $$.type = FUNCTION;
-            $$.numParams = $<num>5; //!!! should be length of param list
+            $$.numParams = $<num>5;
             $$.returnType = $7.type;
             $$.isParam = false;
+            $<num>5 = 0;
             }
             ;
 N_PARAM_LIST    : N_PARAMS
@@ -591,7 +670,7 @@ N_PARAM_LIST    : N_PARAMS
             printRule("PARAM_LIST", "NO_PARAMS");
             }
             ;
-N_NO_PARAMS :
+N_NO_PARAMS : /* epsilon */
             {
             printRule("NO_PARAMS", "epsilon");
             }
@@ -646,7 +725,7 @@ N_FUNCTION_CALL : T_IDENT
             {
               semanticError(1, MUST_BE_FNCT);
             }
-            // Check to make sure there are the correct number of parameters!!!!!
+            // Check to make sure there are the correct number of parameters
             if(numArgs > temp.numParams)
             {
               semanticError(-1, TOO_MANY_PARAMS);
@@ -654,6 +733,11 @@ N_FUNCTION_CALL : T_IDENT
             else if(numArgs < temp.numParams)
             {
               semanticError(-1, TOO_FEW_PARAMS);
+            }
+            // If a recursive call occurs
+            if(temp.returnType == NOT_APPLICABLE || temp.returnType == UNDEFINED)
+            {
+              semanticError(-1, UNDEFINED_IDENT);
             }
             $$.type = temp.returnType;
             $$.numParams = UNDEFINED;
@@ -670,7 +754,7 @@ N_ARG_LIST  : N_ARGS
             printRule("ARG_LIST", "NO_ARGS");
             }
             ;
-N_NO_ARGS   :
+N_NO_ARGS   : /* epsilon */
             {
             printRule("NO_ARGS", "epsilon");
             }
@@ -680,9 +764,8 @@ N_ARGS      : N_EXPR
             printRule("ARGS", "EXPR");
             numArgs++;
             if(!isIntCompatible($1.type))
-            {//pass ctr as arg num!!!
+            {
               semanticError(-1, PARAMS_MUST_BE_INT);
-              //semanticError(1, MUST_BE_INT); //!!! must change arg num
             }
             }
             | N_EXPR T_COMMA N_ARGS
@@ -692,7 +775,6 @@ N_ARGS      : N_EXPR
             if(!isIntCompatible($1.type))
             {
               semanticError(-1, PARAMS_MUST_BE_INT);
-              //semanticError(1, MUST_BE_INT); //!!! change to arg num
             }
             }
             ;
@@ -1036,7 +1118,7 @@ N_SINGLE_ELEMENT    : T_IDENT
               semanticError(-1, UNDEFINED_IDENT);
               exit(1);
             }
-            else if(temp.type != LIST)
+            else if(!isListCompatible(temp.type)) //!!!
             {
               // Cannot index into a variable that is not a list
               semanticError(1, MUST_BE_LIST);
