@@ -82,6 +82,7 @@ bool isIntOrFloatOrBoolCompatible(const int typeval);
 bool isIntOrStrOrFloatOrBoolCompatible(const int typeval);
 bool relOpCompare(int valOne, int valTwo, string relOper);
 string convertToString(char* a, int size);
+void printListFnct(vector<LIST_ENTRY>* listEntries);
 
 extern "C" 
 {
@@ -145,126 +146,49 @@ extern "C"
 N_START		: N_EXPR
 			{
 			printRule("START", "EXPR");
-      printf("EXPR type is: ");
-      switch($1.type)
-      {
-        case(NULL_TYPE):
-          printf("NULL");
-          break;
-        case(INT):
-          printf("INT");
-          break;
-        case(STR):
-          printf("STR");
-          break;
-        case(BOOL):
-          printf("BOOL");
-          break;
-        case(FLOAT):
-          printf("FLOAT");
-          break;
-        case(LIST):
-          printf("LIST");
-          break;
-        case(FUNCTION):
-          printf("FUNCTION");
-          break;
-        case(INT_OR_STR_OR_FLOAT_OR_BOOL):
-          printf("INT_OR_STR_OR_FLOAT_OR_BOOL");
-          break;
-        case(INT_OR_STR):
-          printf("INT_OR_STR");
-          break;
-        case(INT_OR_BOOL):
-          printf("INT_OR_BOOL");
-          break;
-        case(INT_OR_FLOAT):
-          printf("INT_OR_FLOAT");
-          break;
-        case(STR_OR_BOOL):
-          printf("STR_OR_BOOL");
-          break;
-        case(STR_OR_FLOAT):
-          printf("STR_OR_FLOAT");
-          break;
-        case(BOOL_OR_FLOAT):
-          printf("BOOL_OR_FLOAT");
-          break;
-        case(LIST_OR_INT):
-          printf("LIST_OR_INT");
-          break;
-        case(LIST_OR_STR):
-          printf("LIST_OR_STR");
-          break;
-        case(LIST_OR_BOOL):
-          printf("LIST_OR_BOOL");
-          break;
-        case(LIST_OR_FLOAT):
-          printf("LIST_OR_FLOAT");
-          break;
-        case(INT_OR_STR_OR_BOOL):
-          printf("INT_OR_STR_OR_BOOL");
-          break;
-        case(INT_OR_STR_OR_FLOAT):
-          printf("INT_OR_STR_OR_FLOAT");
-          break;
-        case(INT_OR_BOOL_OR_FLOAT):
-          printf("INT_OR_BOOL_OR_FLOAT");
-          break;
-        case(STR_OR_BOOL_OR_FLOAT):
-          printf("STR_OR_BOOL_OR_FLOAT");
-          break;
-        case(LIST_OR_INT_OR_STR):
-          printf("LIST_OR_INT_OR_STR");
-          break;
-        case(LIST_OR_INT_OR_BOOL):
-          printf("LIST_OR_INT_OR_BOOL");
-          break;
-        case(LIST_OR_INT_OR_FLOAT):
-          printf("LIST_OR_INT_OR_FLOAT");
-          break;
-        case(LIST_OR_STR_OR_BOOL):
-          printf("LIST_OR_STR_OR_BOOL");
-          break;
-        case(LIST_OR_STR_OR_FLOAT):
-          printf("LIST_OR_STR_OR_FLOAT");
-          break;
-        case(LIST_OR_BOOL_OR_FLOAT):
-          printf("LIST_OR_BOOL_OR_FLOAT");
-          break;
-        case(LIST_OR_FLOAT_OR_BOOL_OR_STR):
-          printf("LIST_OR_FLOAT_OR_BOOL_OR_STR");
-          break;
-        case(LIST_OR_BOOL_OR_STR_OR_INT):
-          printf("LIST_OR_BOOL_OR_STR_OR_INT");
-          break;
-        case(LIST_OR_FLOAT_OR_STR_OR_INT):
-          printf("LIST_OR_FLOAT_OR_STR_OR_INT");
-          break;
-        case(INT_OR_BOOL_OR_FLOAT_OR_LIST):
-          printf("INT_OR_BOOL_OR_FLOAT_OR_LIST");
-          break;
-        case(INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST):
-          printf("INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST");
-          break;
-        case(UNDEFINED):
-          printf("UNDEFINED");
-          break;
-        case(NOT_APPLICABLE):
-          printf("NOT_APPLICABLE");
-          break;
-        case(GOES_TO_EPSILON):
-          printf("GOES_TO_EPSILON");
-          break;
-        default:
-          printf("DEFAULT");
-          break;
-      }
       endScope();
 			printf("\n---- Completed parsing ----\n\n");
-            printf("\nValue of the expression is: ");
-            //!!!! output value here - switch case maybe
+      printf("\nValue of the expression is: ");
+      //!!!! output value here - switch case maybe
+      switch($1.type)
+      {
+        case(INT):
+          cout << $1.int_val;
+          break;
+        case(STR):
+          cout << $1.str_val;
+          break;
+        case(BOOL):
+          //cout << $1.bool_val ? "TRUE" : "FALSE";
+          //printf($1.bool_val ? "TRUE" : "FALSE");
+          if($1.bool_val)
+            cout << "TRUE";
+          else
+            cout << "FALSE";
+          break;
+        case(FLOAT):
+          cout << $1.float_val;
+          break;
+        case(NULL_TYPE):
+          cout << "NULL";
+          break;
+        case(LIST):
+          printListFnct($1.list_val);
+          break;
+        case(NOT_APPLICABLE):
+          cout << "NOT_APPLICABLE";
+          break;
+        case(GOES_TO_EPSILON):
+          cout << "GOES_TO_EPSILON";
+          break;
+        case(UNDEFINED):
+          cout << "UNDEFINED";
+          break;
+        default:
+          cout << "DEFAULT";
+          break;
 			}
+      }
 			;
 N_EXPR      : N_IF_EXPR
             {
@@ -373,6 +297,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_FUNCTION_DEF
             {
@@ -646,29 +571,41 @@ N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
             $$.type = LIST;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            memcpy($$.list_val, $3.list_val, sizeof($$.list_val));
-            //$$.list_val = $3.list_val;
+            //memcpy($$.list_val, $3.list_val, sizeof($$.list_val));
+            $$.list_val = $3.list_val;
             }
             ;
 N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             {
+              //cout << "Constlist\n";
             printRule("CONST_LIST", "CONST, CONST_LIST");
             LIST_ENTRY push_this;
+            push_this.type = $1.type;
             push_this.int_val = $1.int_val;
             push_this.str_val = $1.str_val;
             push_this.float_val = $1.float_val;
             push_this.bool_val = $1.bool_val;
             (*$$.list_val).push_back(push_this);
+            //(*$$.list_val).push_back(*$3.list_val);
+            if($3.type != GOES_TO_EPSILON)
+            {
+            (*$$.list_val).insert($$.list_val->end(), $3.list_val->begin(),
+              $3.list_val->end());
+            }
             }
             | N_CONST
             {
+              cout << "Constlist\n";
             printRule("CONST_LIST", "CONST");
             LIST_ENTRY push_this;
+            push_this.type = $1.type;
             push_this.int_val = $1.int_val;
             push_this.str_val = $1.str_val;
             push_this.float_val = $1.float_val;
             push_this.bool_val = $1.bool_val;
+            cout << "Constlist\n";
             (*$$.list_val).push_back(push_this);
+            cout << "Constlist\n";
             }
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
@@ -740,8 +677,8 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                 temp.float_val = $5.float_val;
                 break;
               case(LIST):
-                memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
-                //temp.list_val = $5.list_val;
+                //memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
+                temp.list_val = $5.list_val;
                 break;
             }
             // If no indexing, just plain variable
@@ -831,23 +768,25 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(STR):
               {
-                printf("%s\n", $3.int_val);
+                printf("%s\n", $3.str_val);
                 break;
               }
               case(BOOL):
               {
-                int print_bool = static_cast<int>($3.bool_val);
-                printf("%d\n", print_bool);
+                //int print_bool = static_cast<int>($3.bool_val);
+                //printf("%b\n", $3.bool_val);
+                printf($3.bool_val ? "TRUE\n" : "FALSE\n");
                 break;
               }
               case(FLOAT):
               {
-                printf("%f\n", $3.float_val);
+                printf("%.2f\n", $3.float_val);
                 break;
               }
               case(LIST):
               {
-                printf("(");
+                cout << "Before paren print for list\n";
+                //printf("(");
                 /*LIST_ENTRY* ptr = $3.list_val;
                 if(ptr != NULL)
                 {
@@ -859,9 +798,12 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
                     ptr = ptr->getNext();
                   }
                 }*/
+                printListFnct($3.list_val);
+                /*cout << "Pre for\n";
                 vector<LIST_ENTRY>& vecRef = *$3.list_val;
                 for(int i=0; i<(*$3.list_val).size()-1; i++)
                 {
+                  cout << "Inside for\n";
                   if(vecRef[i].type == INT)
                     cout << vecRef[i].int_val;
                   else if(vecRef[i].type == STR)
@@ -874,7 +816,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
                   if(i != $3.list_val->size()-1)
                     cout << " ";  
                 }
-                printf(")");
+                printf(")");*/
                 break;
               }
             }
@@ -904,23 +846,25 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(STR):
               {
-                printf("%s\n", $3.int_val);
+                printf("%s\n", $3.str_val);
                 break;
               }
               case(BOOL):
               {
-                int print_bool = static_cast<int>($3.bool_val);
-                printf("%d\n", print_bool);
+                //int print_bool = static_cast<int>($3.bool_val);
+                //printf("%d\n", print_bool);
+                //printf("%b\n", $3.bool_val);
+                printf($3.bool_val ? "TRUE\n" : "FALSE\n");
                 break;
               }
               case(FLOAT):
               {
-                printf("%f\n", $3.float_val);
+                printf("%.2f\n", $3.float_val);
                 break;
               }
               case(LIST):
               {
-                printf("(");
+                //printf("(");
                 /*LIST_ENTRY* ptr = $3.list_val;
                 if(ptr != NULL)
                 {
@@ -933,7 +877,8 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
                   }
                 }*/
                 //int currSize = $3.list_val.size();
-                vector<LIST_ENTRY>& vecRef = *$3.list_val;
+                printListFnct($3.list_val);
+                /*vector<LIST_ENTRY>& vecRef = *$3.list_val;
                 for(int i=0; i<(*$3.list_val).size()-1; i++)
                 {
                   if(vecRef[i].type == INT)
@@ -948,7 +893,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
                   if(i != $3.list_val->size()-1)
                     cout << " ";  
                 }
-                printf(")");
+                printf(")");*/
                 break;
               }
             }
@@ -1874,8 +1819,29 @@ string convertToString(char* a, int size)
   return s;
 }
 
+void printListFnct(vector<LIST_ENTRY>* listEntries)
+{
+  vector<LIST_ENTRY>& vecRef = *listEntries;
+  for(int i=0; i<=listEntries->size()-1; i++)
+  {
+    cout << "Inside for\n";
+    if(vecRef[i].type == INT)
+      cout << vecRef[i].int_val;
+    else if(vecRef[i].type == STR)
+      cout << vecRef[i].str_val;
+    else if(vecRef[i].type == BOOL)
+      cout << vecRef[i].bool_val;
+    else if(vecRef[i].type == FLOAT)
+      cout << vecRef[i].float_val;
+
+    if(i != listEntries->size()-1)
+      cout << " ";  
+  }
+}
+
 int main(int argc, char** argv) 
 {
+  //cout <<"pre sf\n";
   beginScope();
   if(argc < 2)
   {
