@@ -6,6 +6,7 @@
 #include "SymbolTable.h"
 #include <iostream>
 #include <stdlib.h>
+#include <cstring>
 
 // Used to distinguish whether an operator is arithmetic, logical, or relational
 // Helps to determine what type the operands should be
@@ -80,6 +81,7 @@ bool isListCompatible(const int typeval);
 bool isIntOrFloatOrBoolCompatible(const int typeval);
 bool isIntOrStrOrFloatOrBoolCompatible(const int typeval);
 bool relOpCompare(int valOne, int valTwo, string relOper);
+string convertToString(char* a, int size);
 
 extern "C" 
 {
@@ -130,7 +132,7 @@ extern "C"
 %type <arithlogrelOp> N_ADD_OP N_MULT_OP N_REL_OP
 %type <num> T_INTCONST
 %type <text> T_STRCONST
-%type <float> T_FLOATCONST
+%type <float_num> T_FLOATCONST
 
 %nonassoc   T_RPAREN
 %nonassoc   T_ELSE
@@ -272,7 +274,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -284,7 +286,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -296,7 +298,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -308,7 +310,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -320,7 +322,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -332,7 +334,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -344,7 +346,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -356,7 +358,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -368,7 +370,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -380,7 +382,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -392,7 +394,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -404,7 +406,7 @@ N_EXPR      : N_IF_EXPR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -417,7 +419,7 @@ N_CONST     : T_INTCONST
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 0;
             $$.int_val = $1;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = false;
             $$.float_val = 0;
             }
@@ -429,7 +431,7 @@ N_CONST     : T_INTCONST
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 0;
             $$.int_val = 0;
-            $$.str_val = string($1);
+            strcpy($$.str_val, string($1).c_str());
             $$.bool_val = false;
             $$.float_val = 0;
             }
@@ -441,7 +443,7 @@ N_CONST     : T_INTCONST
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 0;
             $$.int_val = 0;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = false;
             $$.float_val = $1;
             }
@@ -453,7 +455,7 @@ N_CONST     : T_INTCONST
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 0;
             $$.int_val = 0;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = true;
             $$.float_val = 0;
             }
@@ -465,7 +467,7 @@ N_CONST     : T_INTCONST
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 0;
             $$.int_val = 0;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = false;
             $$.float_val = 0;
             }
@@ -480,7 +482,7 @@ N_COMPOUND_EXPR : T_LBRACE N_EXPR N_EXPR_LIST T_RBRACE
               $$.returnType = $2.returnType;
               $$.null_val = $2.null_val;
               $$.int_val = $2.int_val;
-              $$.str_val = $2.str_val;
+              strcpy($$.str_val, $2.str_val);
               $$.bool_val = $2.bool_val;
               $$.float_val = $2.float_val;
             }
@@ -491,7 +493,7 @@ N_COMPOUND_EXPR : T_LBRACE N_EXPR N_EXPR_LIST T_RBRACE
               $$.returnType = $3.returnType;
               $$.null_val = $3.null_val;
               $$.int_val = $3.int_val;
-              $$.str_val = $3.str_val;
+              strcpy($$.str_val, $3.str_val);
               $$.bool_val = $3.bool_val;
               $$.float_val = $3.float_val;
             }
@@ -507,7 +509,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
               $$.returnType = $2.returnType;
               $$.null_val = $2.null_val;
               $$.int_val = $2.int_val;
-              $$.str_val = $2.str_val;
+              strcpy($$.str_val, $2.str_val);
               $$.bool_val = $2.bool_val;
               $$.float_val = $2.float_val;
             }
@@ -518,7 +520,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
               $$.returnType = $3.returnType;
               $$.null_val = $3.null_val;
               $$.int_val = $3.int_val;
-              $$.str_val = $3.str_val;
+              strcpy($$.str_val, $3.str_val);
               $$.bool_val = $3.bool_val;
               $$.float_val = $3.float_val;
             }
@@ -644,64 +646,29 @@ N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
             $$.type = LIST;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            $$.list_val = $3.list_val;
+            memcpy($$.list_val, $3.list_val, sizeof($$.list_val));
+            //$$.list_val = $3.list_val;
             }
             ;
 N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             {
             printRule("CONST_LIST", "CONST, CONST_LIST");
-            switch($1.type)
-            {
-              case(INT):
-              {
-                int push_this = $1.int_val;
-                break;
-              }
-              case(STR):
-              {
-                string push_this = $1.str_val;
-                break;
-              }
-              case(FLOAT):
-              {
-                float push_this = $1.float_val;
-                break;
-              }
-              case(BOOL):
-              {
-                bool push_this $1.bool_val;
-                break;
-              }
-            }
-            $$.list_val.push_back(push_this);
+            LIST_ENTRY push_this;
+            push_this.int_val = $1.int_val;
+            push_this.str_val = $1.str_val;
+            push_this.float_val = $1.float_val;
+            push_this.bool_val = $1.bool_val;
+            (*$$.list_val).push_back(push_this);
             }
             | N_CONST
             {
             printRule("CONST_LIST", "CONST");
-            switch($1.type)
-            {
-              case(INT):
-              {
-                int push_this = $1.int_val;
-                break;
-              }
-              case(STR):
-              {
-                string push_this = $1.str_val;
-                break;
-              }
-              case(FLOAT):
-              {
-                float push_this = $1.float_val;
-                break;
-              }
-              case(BOOL):
-              {
-                bool push_this $1.bool_val;
-                break;
-              }
-            }
-            $$.list_val.push_back(push_this);
+            LIST_ENTRY push_this;
+            push_this.int_val = $1.int_val;
+            push_this.str_val = $1.str_val;
+            push_this.float_val = $1.float_val;
+            push_this.bool_val = $1.bool_val;
+            (*$$.list_val).push_back(push_this);
             }
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
@@ -764,7 +731,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                 temp.int_val = $5.int_val;
                 break;
               case(STR):
-                temp.str_val = $5.str_val;
+                strcpy(temp.str_val, $5.str_val);
                 break;
               case(BOOL):
                 temp.bool_val = $5.bool_val;
@@ -773,7 +740,8 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                 temp.float_val = $5.float_val;
                 break;
               case(LIST):
-                temp.list_val = $5.list_val;
+                memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
+                //temp.list_val = $5.list_val;
                 break;
             }
             // If no indexing, just plain variable
@@ -794,7 +762,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                   idx = $2.int_val;
                   break;
                 case(STR):
-                  idx = atoi($2.str_val);
+                  idx = stoi($2.str_val);
                   break;
                 case(BOOL):
                   idx = static_cast<int>($2.bool_val);
@@ -803,7 +771,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                   idx = static_cast<int>($2.float_val);
                   break;
               }
-              scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp, idx));//!@#$
+              scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp), idx);//!@#$
             }
             $$.type = $5.type;
             $$.numParams = $5.numParams;
@@ -811,7 +779,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             $$.isParam = $5.isParam;
             $$.null_val = $5.null_val;
             $$.int_val = $5.int_val;
-            $$.str_val = $5.str_val;
+            strcpy($$.str_val, $5.str_val);
             $$.bool_val = $5.bool_val;
             $$.float_val = $5.float_val;
             }
@@ -822,7 +790,7 @@ N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             $$.type = $3.type;
             $$.null_val = $3.null_val;
             $$.int_val = $3.int_val;
-            $$.str_val = $3.str_val;
+            strcpy($$.str_val, $3.str_val);
             $$.bool_val = $3.bool_val;
             $$.float_val = $3.float_val;
             }
@@ -840,7 +808,7 @@ N_QUIT_EXPR : T_QUIT T_LPAREN T_RPAREN
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 1;
             $$.int_val = 0;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = false;
             $$.float_val = 0;
             exit(1);
@@ -880,7 +848,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               case(LIST):
               {
                 printf("(");
-                LIST_ENTRY* ptr = $3.list_val;
+                /*LIST_ENTRY* ptr = $3.list_val;
                 if(ptr != NULL)
                 {
                   std::cout << *ptr;
@@ -890,6 +858,21 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
                     std::cout << " " << *ptr;
                     ptr = ptr->getNext();
                   }
+                }*/
+                vector<LIST_ENTRY>& vecRef = *$3.list_val;
+                for(int i=0; i<(*$3.list_val).size()-1; i++)
+                {
+                  if(vecRef[i].type == INT)
+                    cout << vecRef[i].int_val;
+                  else if(vecRef[i].type == STR)
+                    cout << vecRef[i].str_val;
+                  else if(vecRef[i].type == BOOL)
+                    cout << vecRef[i].bool_val;
+                  else if(vecRef[i].type == FLOAT)
+                    cout << vecRef[i].float_val;
+
+                  if(i != $3.list_val->size()-1)
+                    cout << " ";  
                 }
                 printf(")");
                 break;
@@ -900,7 +883,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             $$.returnType = $3.returnType;
             $$.null_val = $3.null_val;
             $$.int_val = $3.int_val;
-            $$.str_val = $3.str_val;
+            strcpy($$.str_val, $3.str_val);
             $$.bool_val = $3.bool_val;
             $$.float_val = $3.float_val;
             }
@@ -950,20 +933,20 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
                   }
                 }*/
                 //int currSize = $3.list_val.size();
-                for(int i=0; i<$3.list_val.size()-1; i++)
+                vector<LIST_ENTRY>& vecRef = *$3.list_val;
+                for(int i=0; i<(*$3.list_val).size()-1; i++)
                 {
-                  if($3.list_val[i].type == INT)
-                    cout << $3.list_val[i].int_val;
-                  else if($3.list_val[i].type == STR)
-                    cout << $3.list_val[i].str_val;
-                  else if($3.list_val[i].type == BOOL)
-                    cout << $3.list_val[i].bool_val;
-                  else if($3.list_val[i].type == FLOAT)
-                    cout << $3.list_val[i].float_val;
+                  if(vecRef[i].type == INT)
+                    cout << vecRef[i].int_val;
+                  else if(vecRef[i].type == STR)
+                    cout << vecRef[i].str_val;
+                  else if(vecRef[i].type == BOOL)
+                    cout << vecRef[i].bool_val;
+                  else if(vecRef[i].type == FLOAT)
+                    cout << vecRef[i].float_val;
 
-                  if(i != $3.list_val.size()-1)
-                    cout << " ";
-                    
+                  if(i != $3.list_val->size()-1)
+                    cout << " ";  
                 }
                 printf(")");
                 break;
@@ -974,7 +957,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             $$.returnType = $3.returnType;
             $$.null_val = 1;
             $$.int_val = 0;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = false;
             $$.float_val = 0;
             }
@@ -991,7 +974,7 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
                 //set $$.val!!!!
                 $$.null_val = 0;
                 $$.int_val = 0;
-                $$.str_val = read_in;
+                strcpy($$.str_val, read_in.c_str());
                 $$.bool_val = false;
                 $$.float_val = 0;
             }
@@ -1001,7 +984,7 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
                 //set $$.val!!!!
                 $$.null_val = 0;
                 $$.int_val = 0;
-                $$.str_val = "";
+                strcpy($$.str_val, "");
                 $$.bool_val = false;
                 $$.float_val = stof(read_in);
             }
@@ -1011,7 +994,7 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
                 //set $$.val!!!!
                 $$.null_val = 0;
                 $$.int_val = stoi(read_in);
-                $$.str_val = "";
+                strcpy($$.str_val, "");
                 $$.bool_val = false;
                 $$.float_val = 0;
             }
@@ -1222,7 +1205,7 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             $$.returnType = NOT_APPLICABLE;
             $$.null_val = 0;
             $$.int_val = 0;
-            $$.str_val = "";
+            strcpy($$.str_val, "");
             $$.bool_val = final_val;
             $$.float_val = 0;
             }
@@ -1446,87 +1429,101 @@ N_ADD_OP    : T_ADD
             {
             printRule("ADD_OP", "+");
             $$.number = ARITHMETIC_OP;
-            $$.op_str = "+";
+            strcpy($$.op_str, "+");
+            //$$.op_str = "+";
             }
             | T_SUB
             {
             printRule("ADD_OP", "-");
             $$.number = ARITHMETIC_OP;
-            $$.op_str = "-";
+            strcpy($$.op_str, "-");
+            //$$.op_str = "-";
             }
             | T_OR
             {
             printRule("ADD_OP", "|");
             $$.number = LOGICAL_OP;
-            $$.op_str = "|";
+            strcpy($$.op_str, "|");
+            //$$.op_str = "|";
             }
             ;
 N_MULT_OP   : T_MULT
             {
             printRule("MULT_OP", "*");
             $$.number = ARITHMETIC_OP;
-            $$.op_str = "*";
+            strcpy($$.op_str, "*");
+            //$$.op_str = "*";
             }
             | T_DIV
             {
             printRule("MULT_OP", "/");
             $$.number = ARITHMETIC_OP;
-            $$.op_str = "/";
+            strcpy($$.op_str, "/");
+            //$$.op_str = "/";
             }
             | T_AND
             {
             printRule("MULT_OP", "&");
             $$.number = LOGICAL_OP;
-            $$.op_str = "&";
+            strcpy($$.op_str, "&");
+            //$$.op_str = "&";
             }
             | T_MOD
             {
             printRule("MULT_OP", "%%");
             $$.number = ARITHMETIC_OP;
-            $$.op_str = "%%";
+            strcpy($$.op_str, "%%");
+            //$$.op_str = "%%";
             }
             | T_POW
             {
             printRule("MULT_OP", "^");
             $$.number = ARITHMETIC_OP;
-            $$.op_str = "^";
+            strcpy($$.op_str, "^");
+            //$$.op_str = "^";
             }
             ;
 N_REL_OP    : T_LT
             {
             printRule("REL_OP", "<");
             $$.number = RELATIONAL_OP;
-            $$.op_str = "<";
+            strcpy($$.op_str, "<");
+            //$$.op_str = "<";
             }
             | T_GT
             {
             printRule("REL_OP", ">");
             $$.number = RELATIONAL_OP;
-            $$.op_str = ">";
+            strcpy($$.op_str, ">");
+            //$$.op_str = ">";
             }
             | T_LE
             {
             printRule("REL_OP", "<=");
             $$.number = RELATIONAL_OP;
-            $$.op_str = "<=";
+            strcpy($$.op_str, "<=");
+            //$$.op_str = "<=";
             }
             | T_GE
             {
             printRule("REL_OP", ">=");
             $$.number = RELATIONAL_OP;
-            $$.op_str = ">=";
+            strcpy($$.op_str, ">=");
+            //$$.op_str = ">=";
             }
             | T_EQ
             {
             printRule("REL_OP", "==");
             $$.number = RELATIONAL_OP;
-            $$.op_str = "==";
+            strcpy($$.op_str, "==");
+            //$$.op_str = "==";
             }
             | T_NE
             {
             printRule("REL_OP", "!=");
             $$.number = RELATIONAL_OP;
-            $$.op_str = "!=";
+            strcpy($$.op_str, "!=");
+            //$$.op_str = "!=";
             }
             ;
 N_VAR       : N_ENTIRE_VAR
@@ -1537,7 +1534,7 @@ N_VAR       : N_ENTIRE_VAR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -1549,7 +1546,7 @@ N_VAR       : N_ENTIRE_VAR
             $$.returnType = $1.returnType;
             $$.null_val = $1.null_val;
             $$.int_val = $1.int_val;
-            $$.str_val = $1.str_val;
+            strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
             }
@@ -1583,7 +1580,7 @@ N_SINGLE_ELEMENT    : T_IDENT
               case(STR):
               {
                 string tempo = $4.str_val;
-                idx = atoi(tempo);
+                idx = stoi(tempo);
                 break;
               }
               case(BOOL):
@@ -1594,17 +1591,18 @@ N_SINGLE_ELEMENT    : T_IDENT
                 break;
             }
             TYPE_INFO temp3 = findEntryInAnyScope(string($1));
-            if(idx > temp3.list_val.size())
+            if(idx > temp3.list_val->size())
             {
               semanticError(-1,SUBSCRIPT_OOB);
             }
-            $$.type = temp3.list_val[idx].type;
+            vector<LIST_ENTRY>& vecRef = *temp3.list_val;
+            $$.type = vecRef[idx].type;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            $$.int_val = temp3.list_val[idx].int_val;
-            $$.str_val = temp3.list_val[idx].str_val;
-            $$.bool_val = temp3.list_val[idx].bool_val;
-            $$.float_val = temp3.list_val[idx].float_val;
+            $$.int_val = vecRef[idx].int_val;
+            strcpy($$.str_val, vecRef[idx].str_val.c_str());
+            $$.bool_val = vecRef[idx].bool_val;
+            $$.float_val = vecRef[idx].float_val;
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
@@ -1624,7 +1622,7 @@ N_ENTIRE_VAR    : T_IDENT
             $$.isParam = temp.isParam;
             $$.null_val = temp.null_val;
             $$.int_val = temp.int_val;
-            $$.str_val = temp.str_val;
+            strcpy($$.str_val, temp.str_val);
             $$.bool_val = temp.bool_val;
             $$.float_val = temp.float_val;
             }
@@ -1863,6 +1861,17 @@ bool relOpCompare(int valOne, int valTwo, string relOper)
     return(valOne != valTwo);
   else
     return false;
+}
+
+string convertToString(char* a, int size)
+{
+  int i;
+  string s = "";
+  for(i=0; i<size; i++)
+  {
+    s = s+a[i];
+  }
+  return s;
 }
 
 int main(int argc, char** argv) 

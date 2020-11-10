@@ -52,9 +52,21 @@ typedef struct
 
 typedef struct
 {
-  string op_str;
+  //string op_str;
   //CString op_str;
+  char op_str[256];
   int number;
+
+  /*ARITHLOGREL_OP( )
+  {
+    op_str = "";
+    number = 0;
+  }
+  ARITHLOGREL_OP(const string opStr, const int numm)
+  {
+    op_str = opStr;
+    number = numm;
+  }*/
 } ARITHLOGREL_OP;
 
 typedef struct
@@ -62,7 +74,7 @@ typedef struct
   int type; // One of the above type codes
 
   int int_val; // Only applicable if type == INT
-  CString str_val; // Only applicable if type == STR
+  string str_val; // Only applicable if type == STR
   bool bool_val; // Only applicable if type == BOOL
   float float_val; // Only applicable if type == FLOAT
 } LIST_ENTRY;
@@ -83,12 +95,27 @@ typedef struct
 
   int null_val; //!!! make it 1 if null
   int int_val;
-  CString str_val;
+  char str_val[256];
   bool bool_val;
   float float_val;
-  //!!! list goes here maybe
-  vector<LIST_ENTRY> list_val;
-  //!!! no functions this time
+  vector<LIST_ENTRY>* list_val;
+  //LIST_ENTRY* list_val[256];
+  //std::list<LIST_ENTRY>* list_val;
+  int list_size;
+    //!!! no functions this time
+  /*
+    TYPE_INFO( )
+  {
+    type = UNDEFINED.
+    numParams = UNDEFINED;
+    returnType = UNDEFINED;
+    isParam = false;
+    null_val = 0;
+    int_val = 0;
+    str_val = "";
+    bool_val = false;
+    float_val = 0;
+  }*/
 } TYPE_INFO;
 
 
