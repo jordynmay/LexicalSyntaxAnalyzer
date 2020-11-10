@@ -2,6 +2,9 @@
 #define SYMBOL_TABLE_ENTRY_H
 
 #include <string>
+#include <list>
+#include <algorithm>
+#include <vector>
 using namespace std;
 
 // Type codes
@@ -42,7 +45,32 @@ const int LIST_OR_FLOAT_OR_STR_OR_INT = 0b110110;
 const int INT_OR_BOOL_OR_FLOAT_OR_LIST = 0b101110;
 const int INT_OR_BOOL_OR_STR_OR_FLOAT_OR_LIST = 0b111110;
 
+typedef struct
+{
+  char str_val[256];
+} CString;
 
+typedef struct
+{
+  string op_str;
+  //CString op_str;
+  int number;
+} ARITHLOGREL_OP;
+
+typedef struct
+{
+  int type; // One of the above type codes
+
+  int int_val; // Only applicable if type == INT
+  CString str_val; // Only applicable if type == STR
+  bool bool_val; // Only applicable if type == BOOL
+  float float_val; // Only applicable if type == FLOAT
+} LIST_ENTRY;
+
+
+// Setting val for all vars each time
+// OR making a template val setting function
+//!!!! Ask Dr. Leopold
 typedef struct
 {
   int type; // One of the type codes
@@ -52,6 +80,15 @@ typedef struct
   int returnType;
 
   int isParam;
+
+  int null_val; //!!! make it 1 if null
+  int int_val;
+  CString str_val;
+  bool bool_val;
+  float float_val;
+  //!!! list goes here maybe
+  vector<LIST_ENTRY> list_val;
+  //!!! no functions this time
 } TYPE_INFO;
 
 

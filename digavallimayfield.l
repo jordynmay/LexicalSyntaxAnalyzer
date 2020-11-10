@@ -115,10 +115,12 @@ COMMENT         [#](.)*$
 }
 "TRUE"  {
         printTokenInfo("TRUE", yytext);
+        yylval.boolean_val = true;
         return T_TRUE;
 }
 "FALSE" {
         printTokenInfo("FALSE", yytext);
+        yylval.boolean_val = false;
         return T_FALSE;
 }
 "print" {
@@ -171,12 +173,13 @@ COMMENT         [#](.)*$
 }
 {INTCONST}	{
 		printTokenInfo("INTCONST", yytext);
+        yylval.num = atoi(yytext);
 		return T_INTCONST;
 		}
 {IDENT}	{
+		printTokenInfo("IDENT", yytext);
         /* Associates an identifier's name with an identifier token */
         yylval.text = strdup(yytext);
-		printTokenInfo("IDENT", yytext);
 		return T_IDENT;
 		}
 {NEWLINE}	{
@@ -185,10 +188,12 @@ COMMENT         [#](.)*$
 {WSPACE}	{ }
 {FLOATCONST}  {
         printTokenInfo("FLOATCONST", yytext);
+        yylval.float_num = atof(yytext);
         return T_FLOATCONST;
 }
 {STRCONST}	{
 	printTokenInfo("STRCONST", yytext);
+    yylval.text = strdup(yytext);
 	return T_STRCONST;
 }
 {COMMENT}   { }
