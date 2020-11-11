@@ -83,7 +83,7 @@ typedef struct
 // Setting val for all vars each time
 // OR making a template val setting function
 //!!!! Ask Dr. Leopold
-typedef struct
+typedef struct TYPE_INFO
 {
   int type; // One of the type codes
 
@@ -91,30 +91,42 @@ typedef struct
   int numParams;
   int returnType;
 
-  int isParam;
+  bool isParam;
 
   int null_val; //!!! make it 1 if null
   int int_val;
   char str_val[256];
   bool bool_val;
   float float_val;
-  vector<LIST_ENTRY>* list_val;
+  vector<LIST_ENTRY>* list_val;// = new vector<LIST_ENTRY>();
   //LIST_ENTRY* list_val[256];
   //std::list<LIST_ENTRY>* list_val;
   int list_size;
     //!!! no functions this time
-  /*
-    TYPE_INFO( )
+  /*TYPE_INFO( )
   {
-    type = UNDEFINED.
+    type = UNDEFINED;
     numParams = UNDEFINED;
     returnType = UNDEFINED;
     isParam = false;
     null_val = 0;
     int_val = 0;
-    str_val = "";
+    //str_val = "";
     bool_val = false;
     float_val = 0;
+  }
+  TYPE_INFO(int type1, int numParams1, int returnType1, bool isParam1)
+  {
+    type = type1;
+    numParams = numParams1;
+    returnType = returnType1;
+    isParam = isParam1;
+  }
+  TYPE_INFO(int type1, int numParams1, int returnType1)
+  {
+    type = type1;
+    numParams = numParams1;
+    returnType = returnType1;
   }*/
 } TYPE_INFO;
 
@@ -135,6 +147,7 @@ public:
     typeInfo.numParams = UNDEFINED;
     typeInfo.returnType = UNDEFINED;
     typeInfo.isParam = false;
+    typeInfo.list_val = new vector<LIST_ENTRY>(256);
   }
 
   SYMBOL_TABLE_ENTRY(const string theName, const TYPE_INFO theType)
@@ -144,6 +157,7 @@ public:
     typeInfo.numParams = theType.numParams;
     typeInfo.returnType = theType.returnType;
     typeInfo.isParam = theType.isParam;
+    typeInfo.list_val = new vector<LIST_ENTRY>(256);
   }
 
   // Accessors

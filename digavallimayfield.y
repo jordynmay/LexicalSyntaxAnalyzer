@@ -7,6 +7,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <cstring>
+#include <math.h>
 
 // Used to distinguish whether an operator is arithmetic, logical, or relational
 // Helps to determine what type the operands should be
@@ -83,6 +84,14 @@ bool isIntOrStrOrFloatOrBoolCompatible(const int typeval);
 bool relOpCompare(int valOne, int valTwo, string relOper);
 string convertToString(char* a, int size);
 void printListFnct(vector<LIST_ENTRY>* listEntries);
+bool arithYesRellogNo(char oper[256])
+template<typename T, typename U, typename X>
+X ArithFnct(T t1, U t2, char oper[256]);
+template<typename V, typename W>
+bool RelLogFnct(V t1, W t2, char oper[256]);
+int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
+float MiddleFnctF(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
+bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
 
 extern "C" 
 {
@@ -102,6 +111,8 @@ extern "C"
   bool boolean_val;
   int num;
   float float_num;
+  /*TYPE_INFO typeInfo = {UNDEFINED, UNDEFINED, UNDEFINED, false,
+    0, 0, "", false, 0, new vector<LIST_ENTRY>(256)};*/
   TYPE_INFO typeInfo;
   ARITHLOGREL_OP arithlogrelOp;
 };
@@ -167,7 +178,8 @@ N_START		: N_EXPR
             cout << "FALSE";
           break;
         case(FLOAT):
-          cout << $1.float_val;
+          //cout << $1.float_val;
+          printf("%.2f", $1.float_val);
           break;
         case(NULL_TYPE):
           cout << "NULL";
@@ -466,10 +478,38 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             {
               semanticError(2, CANNOT_BE_FNCT);
             }
-            $$.type = $3.type;
-            $$.numParams = $3.numParams;
-            $$.returnType = $3.returnType;
-            $$.isParam = $3.isParam;
+            bool if_value = false;
+            if($1.type == INT)
+            {
+              if_value = ($1.int_val == 0 ? false : true);
+            }
+            else if($1.type == FLOAT)
+            {
+              if_value = ($1.float_val == 0 ? false : true);
+            }
+            else if($1.type == BOOL)
+            {
+              if_value = ($1.bool_val == 0 ? false : true);
+            }
+            if(if_value)
+            {
+              $$.type = $3.type;
+              $$.null_val = $3.null_val;
+              $$.int_val = $3.int_val;
+              strcpy($$.str_val, $3.str_val);
+              $$.bool_val = $3.bool_val;
+              $$.float_val = $3.float_val;
+              $$.list_val = $3.list_val;
+            }
+            else
+            {
+              $$.type = NULL_TYPE;
+              $$.null_val = 1;
+              $$.int_val = 0;
+              strcpy($$.str_val, "");
+              $$.bool_val = false;
+              $$.float_val = 0;
+            }
             }
             | N_COND_IF T_RPAREN N_THEN_EXPR T_ELSE N_EXPR
             {
@@ -483,14 +523,47 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             {
               semanticError(3, CANNOT_BE_FNCT);
             }
+            bool if_value = false;
+            if($1.type == INT)
+            {
+              if_value = ($1.int_val == 0 ? false : true);
+            }
+            else if($1.type == FLOAT)
+            {
+              if_value = ($1.float_val == 0 ? false : true);
+            }
+            else if($1.type == BOOL)
+            {
+              if_value = ($1.bool_val == 0 ? false : true);
+            }
+            if(if_value)
+            {
+              $$.type = $3.type;
+              $$.null_val = $3.null_val;
+              $$.int_val = $3.int_val;
+              strcpy($$.str_val, $3.str_val);
+              $$.bool_val = $3.bool_val;
+              $$.float_val = $3.float_val;
+              $$.list_val = $3.list_val;
+            }
+            else
+            {
+              $$.type = $5.type;
+              $$.null_val = $5.null_val;
+              $$.int_val = $5.int_val;
+              strcpy($$.str_val, $5.str_val);
+              $$.bool_val = $5.bool_val;
+              $$.float_val = $5.float_val;
+              $$.list_val = $5.list_val;
+            }
             //printf("$3.type = %d \n$5.type = %d \n ORed type= %d\n", $3.type, $5.type,
             //$3.type | $5.type);
             // Assign IF_EXPR's type based on a combination of then and else's types
             // Since we don't know whether the then or else will execute yet
-            $$.type = $3.type | $5.type; // Bitwise OR
+            /*$$.type = $3.type | $5.type; // Bitwise OR
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            $$.isParam = $3.isParam || $5.isParam;
+            $$.isParam = $3.isParam || $5.isParam;*/
             }
             ;
 N_COND_IF   : T_IF T_LPAREN N_EXPR
@@ -499,6 +572,12 @@ N_COND_IF   : T_IF T_LPAREN N_EXPR
             $$.type = $3.type;
             $$.numParams = $3.numParams;
             $$.returnType = $3.returnType;
+
+            $$.null_val = $3.null_val;
+            $$.int_val = $3.int_val;
+            strcpy($$.str_val, $3.str_val);
+            $$.bool_val = $3.bool_val;
+            $$.float_val = $3.float_val;
 
             if($$.type == FUNCTION || $$.type == LIST 
             || $$.type == NULL_TYPE || $$.type == STR)
@@ -585,7 +664,9 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             push_this.str_val = $1.str_val;
             push_this.float_val = $1.float_val;
             push_this.bool_val = $1.bool_val;
+            $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
+            //(*$$.list_val).push_back(push_this);
             //(*$$.list_val).push_back(*$3.list_val);
             if($3.type != GOES_TO_EPSILON)
             {
@@ -595,7 +676,7 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             }
             | N_CONST
             {
-              cout << "Constlist\n";
+              //cout << "Constlist\n";
             printRule("CONST_LIST", "CONST");
             LIST_ENTRY push_this;
             push_this.type = $1.type;
@@ -603,9 +684,12 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             push_this.str_val = $1.str_val;
             push_this.float_val = $1.float_val;
             push_this.bool_val = $1.bool_val;
-            cout << "Constlist\n";
+            //cout << "Constlist pre push back\n";
+            $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
-            cout << "Constlist\n";
+            //$$.list_val->push_back(push_this);
+            //$$.list_val->insert($$.list_val->end(), push_this);
+            //cout << "Constlist post push back\n";
             }
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
@@ -719,6 +803,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             strcpy($$.str_val, $5.str_val);
             $$.bool_val = $5.bool_val;
             $$.float_val = $5.float_val;
+            $$.list_val = $5.list_val;
             }
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
@@ -785,7 +870,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(LIST):
               {
-                cout << "Before paren print for list\n";
+                //cerr << "Before paren print for list\n";
                 //printf("(");
                 /*LIST_ENTRY* ptr = $3.list_val;
                 if(ptr != NULL)
@@ -828,6 +913,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             strcpy($$.str_val, $3.str_val);
             $$.bool_val = $3.bool_val;
             $$.float_val = $3.float_val;
+            $$.list_val = $3.list_val;
             }
             | T_CAT T_LPAREN N_EXPR T_RPAREN
             {
@@ -1093,6 +1179,11 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
+            $$.null_val = $1.null_val;
+            $$.int_val = $1.int_val;
+            strcpy($$.str_val, $1.str_val);
+            $$.bool_val = $1.bool_val;
+            $$.float_val = $1.float_val;
             }
             | N_SIMPLE_ARITHLOGIC N_REL_OP N_SIMPLE_ARITHLOGIC
             {
@@ -1157,15 +1248,21 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             ;
 N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             {
+              //cerr << "In simple arith" << endl;
             printRule("SIMPLE_ARITHLOGIC", "TERM ADD_OP_LIST");
             if($2.type == NOT_APPLICABLE)
             {
+              //cerr << "In if for n/a" << endl;
               $$.type = $1.type;
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
+              $$.int_val = $1.int_val;
+              $$.float_val = $1.float_val;
+              $$.bool_val = $1.bool_val;
             }
             else
             {
+              //cerr << "In else" << endl;
               // Both arguments must be int, float, or bool compatible
               if(!isIntOrFloatOrBoolCompatible($1.type))
               {
@@ -1178,22 +1275,31 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
               // If both operands are bool compatible, resulting type is bool
               if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
               {
+                //cerr << "In bool" << endl;
                 $$.type = BOOL;
+                $$.bool_val = MiddleFnctB($1, $2, $2.str_val);
               }
               // If both operands are int compatible, resulting type is int
               else if(isIntCompatible($1.type) && isIntCompatible($2.type))
               {
                 $$.type = INT;
+                $$.int_val = MiddleFnctI($1, $2, $2.str_val);
               }
               // If one operand is float compatible, resulting type is float
               else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
               {
                 $$.type = FLOAT;
+                $$.float_val = MiddleFnctF($1, $2, $2.str_val);
               }
               else
               {
                 $$.type = $1.type;
+                $$.int_val = 0;
+                $$.float_val = 0;
+                $$.bool_val = false;
               }
+              //////////
+              //////////
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
             }
@@ -1209,32 +1315,35 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             }
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            // If an arithmetic operator is used, resulting type is int or float
-            if($1.number == ARITHMETIC_OP)
+            // If no other add_op_list
+            if($3.type == NOT_APPLICABLE)
             {
-              if($3.type == NOT_APPLICABLE)
+              //cerr << "add op list n/a" << endl;
+              $$.type = $2.type;
+              $$.int_val = $2.int_val;
+              $$.float_val = $2.float_val;
+              $$.bool_val = $2.bool_val;
+              strcpy($$.str_val, $1.op_str);
+            }
+            // Else if an arithmetic operator is used, resulting type is int or float
+            else if($1.number == ARITHMETIC_OP)
+            {
+              // If both operands are int compatible, resulting type is int
+              if(isIntCompatible($2.type) && isIntCompatible($3.type))
               {
-                $$.type = $2.type;
+                $$.type = INT;
+              }
+              // If one operand is float compatible, resulting type is float
+              else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
+              {
+                $$.type = FLOAT;
               }
               else
               {
-                // If both operands are int compatible, resulting type is int
-                if(isIntCompatible($2.type) && isIntCompatible($3.type))
-                {
-                  $$.type = INT;
-                }
-                // If one operand is float compatible, resulting type is float
-                else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
-                {
-                  $$.type = FLOAT;
-                }
-                else
-                {
-                  $$.type = $2.type;
-                }
+                $$.type = $2.type;
               }
             }
-            // If a logical operator is used, resulting type is bool
+            // Else if a logical operator is used, resulting type is bool
             else if($1.number == LOGICAL_OP)
             {
               $$.type = BOOL;
@@ -1347,6 +1456,12 @@ N_FACTOR    : N_VAR
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
+            $$.null_val = $1.null_val;
+            $$.int_val = $1.int_val;
+            strcpy($$.str_val, $1.str_val);
+            $$.bool_val = $1.bool_val;
+            $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_CONST
             {
@@ -1354,6 +1469,12 @@ N_FACTOR    : N_VAR
             $$.type = $1.type;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
+            $$.null_val = $1.null_val;
+            $$.int_val = $1.int_val;
+            strcpy($$.str_val, $1.str_val);
+            $$.bool_val = $1.bool_val;
+            $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | T_LPAREN N_EXPR T_RPAREN
             {
@@ -1361,6 +1482,12 @@ N_FACTOR    : N_VAR
             $$.type = $2.type;
             $$.numParams = $2.numParams;
             $$.returnType = $2.returnType;
+            $$.null_val = $2.null_val;
+            $$.int_val = $2.int_val;
+            strcpy($$.str_val, $2.str_val);
+            $$.bool_val = $2.bool_val;
+            $$.float_val = $2.float_val;
+            $$.list_val = $2.list_val;
             }
             | T_NOT N_FACTOR
             {
@@ -1368,6 +1495,11 @@ N_FACTOR    : N_VAR
             $$.type = $2.type;
             $$.numParams = $2.numParams;
             $$.returnType = $2.returnType;
+            $$.null_val = !($2.null_val);
+            $$.int_val = !($2.int_val);
+            strcpy($$.str_val, "helloworld");
+            $$.bool_val = !($2.bool_val);
+            $$.float_val = !($2.float_val);
             }
             ;
 N_ADD_OP    : T_ADD
@@ -1494,6 +1626,7 @@ N_VAR       : N_ENTIRE_VAR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             ;
 N_SINGLE_ELEMENT    : T_IDENT
@@ -1520,6 +1653,7 @@ N_SINGLE_ELEMENT    : T_IDENT
                 idx = $4.null_val;
                 break;
               case(INT):
+                //cerr << "idx is an int!" << endl;
                 idx = $4.int_val;
                 break;
               case(STR):
@@ -1535,19 +1669,23 @@ N_SINGLE_ELEMENT    : T_IDENT
                 idx = static_cast<int>($4.float_val);
                 break;
             }
-            TYPE_INFO temp3 = findEntryInAnyScope(string($1));
-            if(idx > temp3.list_val->size())
+            //TYPE_INFO temp3 = findEntryInAnyScope(string($1));
+            //cerr << "before idxing" << endl;
+            if(idx > temp.list_val->size() || idx < 1)
             {
+              //cerr << "OOB error" << endl;
               semanticError(-1,SUBSCRIPT_OOB);
             }
-            vector<LIST_ENTRY>& vecRef = *temp3.list_val;
-            $$.type = vecRef[idx].type;
+            vector<LIST_ENTRY>& vecRef = *temp.list_val;
+            //cerr << "after & *" << endl;
+            $$.type = vecRef[idx-1].type;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            $$.int_val = vecRef[idx].int_val;
-            strcpy($$.str_val, vecRef[idx].str_val.c_str());
-            $$.bool_val = vecRef[idx].bool_val;
-            $$.float_val = vecRef[idx].float_val;
+            $$.int_val = vecRef[idx-1].int_val;
+            strcpy($$.str_val, vecRef[idx-1].str_val.c_str());
+            $$.bool_val = vecRef[idx-1].bool_val;
+            $$.float_val = vecRef[idx-1].float_val;
+            //cerr << "after all val assignments" << endl;
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
@@ -1822,22 +1960,185 @@ string convertToString(char* a, int size)
 void printListFnct(vector<LIST_ENTRY>* listEntries)
 {
   vector<LIST_ENTRY>& vecRef = *listEntries;
+  cout << "( ";
   for(int i=0; i<=listEntries->size()-1; i++)
   {
-    cout << "Inside for\n";
     if(vecRef[i].type == INT)
       cout << vecRef[i].int_val;
     else if(vecRef[i].type == STR)
       cout << vecRef[i].str_val;
     else if(vecRef[i].type == BOOL)
-      cout << vecRef[i].bool_val;
+      printf(vecRef[i].bool_val ? "TRUE" : "FALSE");
     else if(vecRef[i].type == FLOAT)
-      cout << vecRef[i].float_val;
+      printf("%.2f", vecRef[i].float_val);
 
     if(i != listEntries->size()-1)
       cout << " ";  
   }
+  cout << " )" << endl;
 }
+
+bool arithYesRellogNo(char oper[256])
+{
+  if(strcmp(oper, "+") == 0 || strcmp(oper, "-") == 0 ||
+    strcmp(oper, "*") == 0 || strcmp(oper, "/") == 0 ||
+    strcmp(oper, "%%") == 0 || strcmp(oper, "^") == 0)
+  {
+    return true;
+  }
+  else
+    return false;
+}
+
+template<typename T, typename U>
+float ArithFnct(T t1, U t2, char oper[256])
+{
+  //cerr <<"Made it into arithfnct" << endl;
+  //cerr << "oper is: " << oper << endl;
+
+  if(strcmp(oper, "+") == 0)
+    return(t1+t2);
+  else if(strcmp(oper, "-") == 0)
+    return(t1-t2);
+  else if(strcmp(oper, "*") == 0)
+    return(t1*t2);
+  else if(strcmp(oper, "/") == 0)
+    return(t1/t2);
+  else if(strcmp(oper, "%%") == 0)
+    return(fmod(t1,t2));
+  else if(strcmp(oper, "^") == 0)
+    return(pow(t1, t2));
+  //cerr << "Default ret 0" << endl;
+  return 0;
+}
+
+template<typename V, typename W>
+bool RelLogFnct(V t1, W t2, char oper[256])
+{
+  if(strcmp(oper, "|") == 0)
+    return(t1||t2);
+  else if(strcmp(oper, "&") == 0)
+    return(t1&&t2);
+  else if(strcmp(oper, "<") == 0)
+    return(t1<t2);
+  else if(strcmp(oper, ">") == 0)
+    return(t1>t2);
+  else if(strcmp(oper, "<=") == 0)
+    return(t1<=t2);
+  else if(strcmp(oper, ">=") == 0)
+    return(t1>=t2);
+  else if(strcmp(oper, "==") == 0)
+    return(t1==t2);
+  else if(strcmp(oper, "!=") == 0)
+    return(t1!=t2); 
+  else
+    return(false);
+}
+int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
+{
+  //cerr << "Made it into middlefnct" << endl;
+  bool arithYes = arithYesRellogNo(oper);
+
+  if(arithYes)
+  {
+    int ret_val = 0;
+    if(t1.type == INT && t2.type == INT)
+      ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
+    else if(t1.type == INT && t2.type == FLOAT)
+      ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
+    else if(t1.type == INT && t2.type == BOOL)
+      ret_val = ArithFnct(t1.int_val, t2.bool_val, oper);
+    else if(t1.type == FLOAT && t2.type == INT)
+      ret_val = ArithFnct(t1.float_val, t2.int_val, oper);
+    else if(t1.type == FLOAT && t2.type == FLOAT)
+      ret_val = ArithFnct(t1.float_val, t2.float_val, oper);
+    else if(t1.type == FLOAT && t2.type == BOOL)
+      ret_val = ArithFnct(t1.float_val, t2.bool_val, oper);
+    else if(t1.type == BOOL && t2.type == INT)
+      ret_val = ArithFnct(t1.bool_val, t2.int_val, oper);
+    else if(t1.type == BOOL && t2.type == FLOAT)
+      ret_val = ArithFnct(t1.bool_val, t2.float_val, oper);
+    else if(t1.type == BOOL && t2.type == BOOL)
+      ret_val = ArithFnct(t1.bool_val, t2.bool_val, oper);
+    return ret_val;
+  }
+  else
+  {
+    bool ret_val = false;
+    if(t1.type == INT && t2.type == INT)
+      ret_val = RelLogFnct(t1.int_val, t2.int_val, oper);
+    else if(t1.type == INT && t2.type == FLOAT)
+      ret_val = RelLogFnct(t1.int_val, t2.float_val, oper);
+    else if(t1.type == INT && t2.type == BOOL)
+      ret_val = RelLogFnct(t1.int_val, t2.bool_val, oper);
+    else if(t1.type == FLOAT && t2.type == INT)
+      ret_val = RelLogFnct(t1.float_val, t2.int_val, oper);
+    else if(t1.type == FLOAT && t2.type == FLOAT)
+      ret_val = RelLogFnct(t1.float_val, t2.float_val, oper);
+    else if(t1.type == FLOAT && t2.type == BOOL)
+      ret_val = RelLogFnct(t1.float_val, t2.bool_val, oper);
+    else if(t1.type == BOOL && t2.type == INT)
+      ret_val = RelLogFnct(t1.bool_val, t2.int_val, oper);
+    else if(t1.type == BOOL && t2.type == FLOAT)
+      ret_val = RelLogFnct(t1.bool_val, t2.float_val, oper);
+    else if(t1.type == BOOL && t2.type == BOOL)
+      ret_val = RelLogFnct(t1.bool_val, t2.bool_val, oper);
+    return ret_val;
+  }
+
+  return(ret_val);
+}
+float MiddleFnctF(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
+{
+  float ret_val;
+
+  if(t1.type == INT && t2.type == INT)
+    ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
+  else if(t1.type == INT && t2.type == FLOAT)
+    ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
+  else if(t1.type == INT && t2.type == BOOL)
+    ret_val = ArithFnct(t1.int_val, t2.bool_val, oper);
+  else if(t1.type == FLOAT && t2.type == INT)
+    ret_val = ArithFnct(t1.float_val, t2.int_val, oper);
+  else if(t1.type == FLOAT && t2.type == FLOAT)
+    ret_val = ArithFnct(t1.float_val, t2.float_val, oper);
+  else if(t1.type == FLOAT && t2.type == BOOL)
+    ret_val = ArithFnct(t1.float_val, t2.bool_val, oper);
+  else if(t1.type == BOOL && t2.type == INT)
+    ret_val = ArithFnct(t1.bool_val, t2.int_val, oper);
+  else if(t1.type == BOOL && t2.type == FLOAT)
+    ret_val = ArithFnct(t1.bool_val, t2.float_val, oper);
+  else if(t1.type == BOOL && t2.type == BOOL)
+    ret_val = ArithFnct(t1.bool_val, t2.bool_val, oper);
+
+  return(ret_val);
+}
+bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
+{
+  bool ret_val;
+
+  if(t1.type == INT && t2.type == INT)
+    ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
+  else if(t1.type == INT && t2.type == FLOAT)
+    ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
+  else if(t1.type == INT && t2.type == BOOL)
+    ret_val = ArithFnct(t1.int_val, t2.bool_val, oper);
+  else if(t1.type == FLOAT && t2.type == INT)
+    ret_val = ArithFnct(t1.float_val, t2.int_val, oper);
+  else if(t1.type == FLOAT && t2.type == FLOAT)
+    ret_val = ArithFnct(t1.float_val, t2.float_val, oper);
+  else if(t1.type == FLOAT && t2.type == BOOL)
+    ret_val = ArithFnct(t1.float_val, t2.bool_val, oper);
+  else if(t1.type == BOOL && t2.type == INT)
+    ret_val = ArithFnct(t1.bool_val, t2.int_val, oper);
+  else if(t1.type == BOOL && t2.type == FLOAT)
+    ret_val = ArithFnct(t1.bool_val, t2.float_val, oper);
+  else if(t1.type == BOOL && t2.type == BOOL)
+    ret_val = ArithFnct(t1.bool_val, t2.bool_val, oper);
+
+  return(ret_val);
+}
+
 
 int main(int argc, char** argv) 
 {
