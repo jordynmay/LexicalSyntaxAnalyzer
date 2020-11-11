@@ -85,6 +85,7 @@ bool relOpCompare(float valOne, float valTwo, string relOper);
 string convertToString(char* a, int size);
 void printListFnct(vector<LIST_ENTRY>* listEntries);
 //bool arithYesRellogNo(char oper[256]);
+bool shouldBeBool(char oper[256]);
 template<typename T, typename U>
 float ArithFnct(T t1, U t2, char oper[256]);
 //template<typename V, typename W>
@@ -92,6 +93,7 @@ float ArithFnct(T t1, U t2, char oper[256]);
 //int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
 float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
 //bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
+
 
 extern "C" 
 {
@@ -654,6 +656,9 @@ N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
             $$.returnType = NOT_APPLICABLE;
             //memcpy($$.list_val, $3.list_val, sizeof($$.list_val));
             $$.list_val = $3.list_val;
+            cerr << "\t\t$3 listval size is: " << $3.list_val->size() << endl;
+            cerr << "\t\t$$ listval size is: " << $$.list_val->size() << endl;
+            cerr << "\telem 2: " << $$.list_val->operator[](1).int_val << endl;
             }
             ;
 N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
@@ -668,13 +673,19 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             push_this.bool_val = $1.bool_val;
             $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
+
+            cerr << "listval size is: " << $$.list_val->size() << endl;
+            cerr << "adding this elem type to list: " << push_this.type << endl;
+            cerr << "adding this elem to list: " << push_this.int_val << endl;
             //(*$$.list_val).push_back(push_this);
             //(*$$.list_val).push_back(*$3.list_val);
             if($3.type != GOES_TO_EPSILON)
             {
+              cerr << "concatenating vectors" << endl;
             (*$$.list_val).insert($$.list_val->end(), $3.list_val->begin(),
               $3.list_val->end());
             }
+            cerr << "listval size after concat is: " << $$.list_val->size() << endl;
             }
             | N_CONST
             {
@@ -689,6 +700,8 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             //cout << "Constlist pre push back\n";
             $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
+            cerr << "\tlistval size: " << $$.list_val->size() << endl;
+            cerr << "\tlistval elem: " << $$.list_val->operator[](0).int_val << endl;
             //$$.list_val->push_back(push_this);
             //$$.list_val->insert($$.list_val->end(), push_this);
             //cout << "Constlist post push back\n";
@@ -696,6 +709,9 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             {
+              //cerr << "ident is: " << $1 << endl;
+              //cerr << "index type: " << $2.type << endl;
+              //cerr << "index val: " << $2.int_val << endl;
             printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
             string lexeme = string($1);
             TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
@@ -716,6 +732,9 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             }
             T_ASSIGN N_EXPR
             {
+              //cerr << "beginning of assign" << endl;
+              //cerr << "\tnexpr type is: " << $5.type << endl;
+              //cerr << "\tnexpr is: " << $5.float_val << endl;
             string lexeme = string($1);
             TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
 
@@ -731,50 +750,48 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                 // Parameters must be integers
                 semanticError(1, MUST_BE_INT);
               }
-              TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
-              scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
+              //TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
+              //scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
             }
             else
             {
-              TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
-              scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
+              //TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
+              //scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
             }
             if($2.type != GOES_TO_EPSILON && isListCompatible($5.type))//!!!
             {
               // No lists of lists allowed
               semanticError(1, CANNOT_BE_LIST);
             }
+            //cerr << "assigning to temp" << endl;
             temp.type = $5.type;
-            switch($5.type)
-            {
-              case(NULL_TYPE):
-                temp.null_val = $5.null_val;
-                break;
-              case(INT):
-                temp.int_val = $5.int_val;
-                break;
-              case(STR):
-                strcpy(temp.str_val, $5.str_val);
-                break;
-              case(BOOL):
-                temp.bool_val = $5.bool_val;
-                break;
-              case(FLOAT):
-                temp.float_val = $5.float_val;
-                break;
-              case(LIST):
-                //memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
-                temp.list_val = $5.list_val;
-                break;
-            }
+            temp.numParams = $5.numParams;
+            temp.returnType = $5.returnType;
+            temp.isParam = $5.isParam;
+            temp.null_val = $5.null_val;
+            temp.int_val = $5.int_val;
+            strcpy(temp.str_val, $5.str_val);
+            temp.bool_val = $5.bool_val;
+            temp.float_val = $5.float_val;
+            //memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
+            temp.list_val = $5.list_val;
+
+            cerr << "\ntemp list elems: " << temp.list_val->operator[](1).int_val << endl<<endl;
+            //cerr << "$2.type is: " << $2.type << endl;
+
             // If no indexing, just plain variable
             if($2.type == GOES_TO_EPSILON)
             {
               scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
+              ///////////////
+              TYPE_INFO test = findEntryInAnyScope(lexeme);
+              cerr << "\ntest list elems: " << test.list_val->operator[](1).int_val << endl<<endl;
+              ///////////////
             }
             // Else if indexing and T_IDENT is a list
             else
             {
+              //cerr << "made to else in assignment" << endl;
               int idx = 1;
               switch($2.type)
               {
@@ -794,7 +811,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                   idx = static_cast<int>($2.float_val);
                   break;
               }
-              scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp), idx);//!@#$
+              scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp), idx-1);//!@#$
             }
             $$.type = $5.type;
             $$.numParams = $5.numParams;
@@ -811,6 +828,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             {
             printRule("INDEX", "[[ EXPR ]]"); //!@#$
+            //cerr << "idx's type in index is: " << $3.type << endl;
             $$.type = $3.type;
             $$.null_val = $3.null_val;
             $$.int_val = $3.int_val;
@@ -820,6 +838,7 @@ N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             }
             | /* epsilon */
             {
+              //cerr << "idx's type in index is:-2" << endl;
             printRule("INDEX", "epsilon");
             $$.type = GOES_TO_EPSILON;
             }
@@ -840,6 +859,7 @@ N_QUIT_EXPR : T_QUIT T_LPAREN T_RPAREN
             ;
 N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             {
+              //cerr << "expr type is: " << $3.type << endl;
             printRule("OUTPUT_EXPR", "PRINT ( EXPR )");
             if($3.type == FUNCTION || $3.type == NULL_TYPE)
             {
@@ -1279,31 +1299,32 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
               {
                 semanticError(2, MUST_BE_INT_FLOAT_BOOL);
               }
-              // If both operands are bool compatible, resulting type is bool
-              if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
+              if(shouldBeBool($2.str_val))
               {
-                //cerr << "In bool" << endl;
                 $$.type = BOOL;
                 $$.bool_val = static_cast<bool>(MiddleFnct($1, $2, $2.str_val));
               }
-              // If both operands are int compatible, resulting type is int
-              else if(isIntCompatible($1.type) && isIntCompatible($2.type))
-              {
-                $$.type = INT;
-                $$.int_val = static_cast<int>(MiddleFnct($1, $2, $2.str_val));
-              }
-              // If one operand is float compatible, resulting type is float
-              else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
-              {
-                $$.type = FLOAT;
-                $$.float_val = MiddleFnct($1, $2, $2.str_val);
-              }
               else
               {
-                $$.type = $1.type;
-                $$.int_val = 0;
-                $$.float_val = 0;
-                $$.bool_val = false;
+                if(isIntCompatible($1.type) && isIntCompatible($2.type))
+                {
+                  $$.type = INT;
+                  $$.int_val = static_cast<int>(MiddleFnct($1, $2, $2.str_val));
+
+                }
+                // If one operand is float compatible, resulting type is float
+                else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
+                {
+                  $$.type = FLOAT;
+                  $$.float_val = MiddleFnct($1, $2, $2.str_val);
+                }
+                else
+                {
+                  $$.type = $1.type;
+                  $$.int_val = 0;
+                  $$.float_val = 0;
+                  $$.bool_val = false;
+                }
               }
               //////////
               //////////
@@ -1334,33 +1355,32 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             }
             else
             {
-              // If both operands are int compatible, resulting type is int
-              if(isIntCompatible($2.type) && isIntCompatible($3.type))
-              {
-                //cerr << "Bout to call middle" << endl;
-                //cerr << "Arg1: " << $2.int_val << endl;
-                //cerr << "Arg2: " << $3.int_val << endl;
-                //cerr << "oper: " << $3.str_val << endl;
-                $$.type = INT;
-                $$.int_val = MiddleFnct($2, $3, $3.str_val);
-              }
-              // If one operand is float compatible, resulting type is float
-              else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
-              {
-                $$.type = FLOAT;
-                $$.float_val = MiddleFnct($2, $3, $3.str_val);
-              }
-              else if($1.number == LOGICAL_OP)
+              if(shouldBeBool($3.str_val))
               {
                 $$.type = BOOL;
-                $$.bool_val = MiddleFnct($2, $3, $3.str_val);
+                $$.bool_val = static_cast<bool>(MiddleFnct($2, $3, $3.str_val));
               }
               else
               {
-                $$.type = $2.type;
-                $$.int_val = 0;
-                $$.bool_val = false;
-                $$.float_val = 0;
+                if(isIntCompatible($2.type) && isIntCompatible($3.type))
+                {
+                  $$.type = INT;
+                  $$.int_val = static_cast<int>(MiddleFnct($2, $3, $3.str_val));
+
+                }
+                // If one operand is float compatible, resulting type is float
+                else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
+                {
+                  $$.type = FLOAT;
+                  $$.float_val = MiddleFnct($2, $3, $3.str_val);
+                }
+                else
+                {
+                  $$.type = $2.type;
+                  $$.int_val = 0;
+                  $$.float_val = 0;
+                  $$.bool_val = false;
+                }
               }
             }
             }
@@ -1397,27 +1417,35 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
               {
                 semanticError(2, MUST_BE_INT_FLOAT_BOOL);
               }
-              // If both operands are bool compatible, resulting type is bool
-              if(isBoolCompatible($1.type) && isBoolCompatible($2.type))
+              if(shouldBeBool($2.str_val))
               {
                 $$.type = BOOL;
-              }
-              // If both operands are int compatible, resulting type is int
-              else if(isIntCompatible($1.type) && isIntCompatible($2.type))
-              {
-                $$.type = INT;
-              }
-              // If one operand is float compatible, resulting type is float
-              else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
-              {
-                $$.type = FLOAT;
+                $$.bool_val = static_cast<bool>(MiddleFnct($1, $2, $2.str_val));
               }
               else
               {
-                $$.type = $1.type;
+                if(isIntCompatible($1.type) && isIntCompatible($2.type))
+                {
+                  $$.type = INT;
+                  $$.int_val = static_cast<int>(MiddleFnct($1, $2, $2.str_val));
+
+                }
+                // If one operand is float compatible, resulting type is float
+                else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
+                {
+                  $$.type = FLOAT;
+                  $$.float_val = MiddleFnct($1, $2, $2.str_val);
+                }
+                else
+                {
+                  $$.type = $1.type;
+                  $$.int_val = 0;
+                  $$.float_val = 0;
+                  $$.bool_val = false;
+                }
               }
-              $$.numParams = NOT_APPLICABLE;
-              $$.returnType = NOT_APPLICABLE;
+              $$.numParams = $1.numParams;
+              $$.returnType = $1.returnType;
             }
             }
             ;
@@ -1429,37 +1457,46 @@ N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
             {
               semanticError(2, MUST_BE_INT_FLOAT_BOOL);
             }
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
+            strcpy($$.str_val, $1.op_str);
+            // If no other mult_op_list
             if($3.type == NOT_APPLICABLE)
             {
               $$.type = $2.type;
+              $$.int_val = $2.int_val;
+              $$.float_val = $2.float_val;
+              $$.bool_val = $2.bool_val;
             }
             else
             {
-            // If an arithmetic operator is used, resulting type is int or float
-            if($1.number == ARITHMETIC_OP)
-            {
-                // If both operands are int compatible, resulting type is int
+              if(shouldBeBool($3.str_val))
+              {
+                $$.type = BOOL;
+                $$.bool_val = static_cast<bool>(MiddleFnct($2, $3, $3.str_val));
+              }
+              else
+              {
                 if(isIntCompatible($2.type) && isIntCompatible($3.type))
                 {
                   $$.type = INT;
+                  $$.int_val = static_cast<int>(MiddleFnct($2, $3, $3.str_val));
+
                 }
                 // If one operand is float compatible, resulting type is float
                 else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
                 {
                   $$.type = FLOAT;
+                  $$.float_val = MiddleFnct($2, $3, $3.str_val);
                 }
                 else
                 {
                   $$.type = $2.type;
+                  $$.int_val = 0;
+                  $$.float_val = 0;
+                  $$.bool_val = false;
                 }
               }
-            // If a logical operator is used, resulting type is bool
-            else if($1.number == LOGICAL_OP)
-            {
-              $$.type = BOOL;
-            }
-            $$.numParams = NOT_APPLICABLE;
-            $$.returnType = NOT_APPLICABLE;
             }
             }
             | /* epsilon */
@@ -2012,11 +2049,24 @@ void printListFnct(vector<LIST_ENTRY>* listEntries)
     return false;
 }*/
 
+bool shouldBeBool(char oper[256])
+{
+  if(strcmp(oper, "|") == 0 || strcmp(oper, "&") == 0 ||
+    strcmp(oper, "<") == 0 || strcmp(oper, ">") == 0 ||
+    strcmp(oper, "<=") == 0 || strcmp(oper, ">=") == 0 ||
+    strcmp(oper, "==") == 0 || strcmp(oper, "!=") == 0)
+  {
+    return true;
+  }
+  else
+    return false;
+}
+
 template<typename T, typename U>
 float ArithFnct(T t1, U t2, char oper[256])
 {
-  cerr <<"Made it into arithfnct" << endl;
-  cerr << "oper is: " << oper << endl;
+  //cerr <<"Made it into arithfnct" << endl;
+  //cerr << "oper is: " << oper << endl;
 
   if(strcmp(oper, "+") == 0)
     return(t1+t2);
@@ -2028,17 +2078,26 @@ float ArithFnct(T t1, U t2, char oper[256])
   else if(strcmp(oper, "*") == 0)
     return(t1*t2);
   else if(strcmp(oper, "/") == 0)
+  {
+    if(t2 == 0)
+    {
+      semanticError(-1, ATTEMPT_DIV_BY_0);
+    }
     return(t1/t2);
+  }
   else if(strcmp(oper, "%%") == 0)
     return(fmod(t1,t2));
   else if(strcmp(oper, "^") == 0)
     return(pow(t1, t2));
   else if(strcmp(oper, "|") == 0)
+  {
+    //cerr << "in arithfn" << endl;
     return(t1||t2);
+  }
   else if(strcmp(oper, "&") == 0)
   {
-    cerr << "t1 is: " << t1 << endl;
-    cerr << "t2 is: " << t2 << endl;
+    //cerr << "t1 is: " << t1 << endl;
+    //cerr << "t2 is: " << t2 << endl;
     //cerr << "ret val is: " << t1&&t2 << endl;
     return(t1&&t2);
   }

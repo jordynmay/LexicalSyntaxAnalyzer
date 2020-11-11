@@ -1,6 +1,7 @@
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
+#include <iostream>
 #include <map>
 #include <string>
 #include "SymbolTableEntry.h"
@@ -54,6 +55,69 @@ public:
     }
     else
     {
+      cerr << "in else of modify" << endl;
+      TYPE_INFO elem_to_insert = itr->second.getTypeInfo();
+      TYPE_INFO list_to_modify = findEntry(x.getName());
+      //LIST_ENTRY elem_to_modify = list_to_modify.list_val[idx-1];
+      //vector<LIST_ENTRY>* temp_list = new vector<LIST_ENTRY>();
+      //temp_list = list_to_modify.list_val;
+      vector<LIST_ENTRY>& temp_list = *list_to_modify.list_val;
+      //vector<LIST_ENTRY> temp_list;
+      //temp_list.clear();
+
+      //
+      cerr << "***temp elem type: " << temp_list[idx].type << endl;
+      cerr << "***temp elem before modify: " << temp_list[idx].int_val << endl;
+
+      cerr << "idx is: " << idx << endl;
+      cerr << "list name: " << x.getName() << endl;
+      cerr << "list size: " << list_to_modify.list_val->size() << endl;
+      cerr << "list type: " << list_to_modify.type << endl;
+      cerr << "elem type: " << list_to_modify.list_val->operator[](idx).type << endl;
+      cerr << "elem before modify: " << list_to_modify.list_val->operator[](idx).int_val << endl;
+      cerr << "elem after modify: " << list_to_modify.list_val->operator[](idx).int_val << endl;
+      /*for(int i=0; i < list_to_modify.list_val->size(); i++)
+      {
+        temp_list.push_back(list_to_modify.list_val->operator[](i));
+      }
+      cerr << "elem before modify: " << temp_list[idx].int_val << endl;
+      if(elem_to_insert.type == INT)
+      {
+        temp_list[idx].type = INT;
+        temp_list[idx].int_val = elem_to_insert.int_val;
+      }
+      else if(elem_to_insert.type == STR)
+      {
+        temp_list[idx].type = STR;
+        temp_list[idx].str_val = elem_to_insert.str_val;
+      }
+      else if(elem_to_insert.type == FLOAT)
+      {
+        temp_list[idx].type = FLOAT;
+        temp_list[idx].float_val = elem_to_insert.float_val;
+      }
+      else if(elem_to_insert.type == BOOL)
+      {
+        temp_list[idx].type = BOOL;
+        temp_list[idx].bool_val = elem_to_insert.bool_val;
+      }
+      cerr << "elem after modify: " << temp_list[idx].int_val << endl;
+
+      list_to_modify.list_val->clear();
+      for(int i=0; i < list_to_modify.list_val->size(); i++)
+      {
+        list_to_modify.list_val->push_back(temp_list[i]);
+      }*/
+
+      //TYPE_INFO temp_typeInfo = {LIST, UNDEFINED, UNDEFINED, false};
+      //temp_typeInfo.list_val = (temp_list);
+
+
+      //vector<LIST_ENTRY>& temp_list = *temp.list_val;
+      
+      //temp2[idx] = 
+
+      //insert_this = itr->second.typeInfo.list_val;
       // We have itr at the symbol table entry we want to modify
       // Itr points to a list
       // We want to modify element [idx] of that list
@@ -61,6 +125,8 @@ public:
       // How to access the [idx] element?
       // Want to replace idx's symbol table entry with x
       //      which was updated in the .y file via T_IDENT N_INDEX = EXPR
+      hashTable.erase(itr);
+      hashTable.insert(make_pair(x.getName(), SYMBOL_TABLE_ENTRY(x.getName(), list_to_modify)));
       return;
     }
   }
