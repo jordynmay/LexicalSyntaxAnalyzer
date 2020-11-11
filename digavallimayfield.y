@@ -81,17 +81,17 @@ bool isStrCompatible(const int typeval);
 bool isListCompatible(const int typeval);
 bool isIntOrFloatOrBoolCompatible(const int typeval);
 bool isIntOrStrOrFloatOrBoolCompatible(const int typeval);
-bool relOpCompare(int valOne, int valTwo, string relOper);
+bool relOpCompare(float valOne, float valTwo, string relOper);
 string convertToString(char* a, int size);
 void printListFnct(vector<LIST_ENTRY>* listEntries);
-bool arithYesRellogNo(char oper[256])
-template<typename T, typename U, typename X>
-X ArithFnct(T t1, U t2, char oper[256]);
-template<typename V, typename W>
-bool RelLogFnct(V t1, W t2, char oper[256]);
-int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
-float MiddleFnctF(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
-bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
+//bool arithYesRellogNo(char oper[256]);
+template<typename T, typename U>
+float ArithFnct(T t1, U t2, char oper[256]);
+//template<typename V, typename W>
+//bool RelLogFnct(V t1, W t2, char oper[256]);
+//int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
+float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
+//bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
 
 extern "C" 
 {
@@ -350,6 +350,8 @@ N_EXPR      : N_IF_EXPR
             ;
 N_CONST     : T_INTCONST
             {
+              //cerr << "in nconst" <<endl;
+              //cerr << "int val is: " << $1 << endl;
             printRule("CONST", "INTCONST");
             $$.type = INT;
             $$.numParams = NOT_APPLICABLE;
@@ -1197,41 +1199,45 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             {
               semanticError(2, MUST_BE_INT_FLOAT_BOOL);
             }*/
-            if($1.type != INT || $1.type != BOOL)
+            if($1.type != INT && $1.type != BOOL && $1.type != FLOAT)
             {
               semanticError(1, MUST_BE_INT); //!!!!! need error msg
             }
-            else if($3.type != INT || $3.type != BOOL)
+            else if($3.type != INT && $3.type != BOOL && $1.type != FLOAT)
             {
               semanticError(2, MUST_BE_INT); //!!!! need error msg
             }
-            int val_one = 0;
+            float val_one = 0;
             switch($1.type)
             {
               case(INT):
               {
-                val_one = $1.int_val;
+                val_one = static_cast<float>($1.int_val);
                 break;
               }
               case(BOOL):
               {
-                val_one = static_cast<int>($1.bool_val);
+                val_one = static_cast<float>($1.bool_val);
                 break;
               }
+              case(FLOAT):
+                val_one = $1.float_val;
             }
-            int val_two = 0;
+            float val_two = 0;
             switch($3.type)
             {
               case(INT):
               {
-                val_two = $3.int_val;
+                val_two = static_cast<float>($3.int_val);
                 break;
               }
               case(BOOL):
               {
-                val_two = static_cast<int>($3.bool_val);
+                val_two = static_cast<float>($3.bool_val);
                 break;
               }
+              case(FLOAT):
+                val_two = $3.float_val;
             }
             string rel_oper = $2.op_str;
             bool final_val = relOpCompare(val_one, val_two, rel_oper);
@@ -1253,6 +1259,7 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             if($2.type == NOT_APPLICABLE)
             {
               //cerr << "In if for n/a" << endl;
+              //cerr << "nterm is: " << $1.int_val << endl;
               $$.type = $1.type;
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
@@ -1277,19 +1284,19 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
               {
                 //cerr << "In bool" << endl;
                 $$.type = BOOL;
-                $$.bool_val = MiddleFnctB($1, $2, $2.str_val);
+                $$.bool_val = static_cast<bool>(MiddleFnct($1, $2, $2.str_val));
               }
               // If both operands are int compatible, resulting type is int
               else if(isIntCompatible($1.type) && isIntCompatible($2.type))
               {
                 $$.type = INT;
-                $$.int_val = MiddleFnctI($1, $2, $2.str_val);
+                $$.int_val = static_cast<int>(MiddleFnct($1, $2, $2.str_val));
               }
               // If one operand is float compatible, resulting type is float
               else if(isFloatCompatible($1.type) || isFloatCompatible($2.type))
               {
                 $$.type = FLOAT;
-                $$.float_val = MiddleFnctF($1, $2, $2.str_val);
+                $$.float_val = MiddleFnct($1, $2, $2.str_val);
               }
               else
               {
@@ -1315,6 +1322,7 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             }
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
+            strcpy($$.str_val, $1.op_str);
             // If no other add_op_list
             if($3.type == NOT_APPLICABLE)
             {
@@ -1323,30 +1331,37 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
               $$.int_val = $2.int_val;
               $$.float_val = $2.float_val;
               $$.bool_val = $2.bool_val;
-              strcpy($$.str_val, $1.op_str);
             }
-            // Else if an arithmetic operator is used, resulting type is int or float
-            else if($1.number == ARITHMETIC_OP)
+            else
             {
               // If both operands are int compatible, resulting type is int
               if(isIntCompatible($2.type) && isIntCompatible($3.type))
               {
+                //cerr << "Bout to call middle" << endl;
+                //cerr << "Arg1: " << $2.int_val << endl;
+                //cerr << "Arg2: " << $3.int_val << endl;
+                //cerr << "oper: " << $3.str_val << endl;
                 $$.type = INT;
+                $$.int_val = MiddleFnct($2, $3, $3.str_val);
               }
               // If one operand is float compatible, resulting type is float
               else if(isFloatCompatible($2.type) || isFloatCompatible($3.type))
               {
                 $$.type = FLOAT;
+                $$.float_val = MiddleFnct($2, $3, $3.str_val);
+              }
+              else if($1.number == LOGICAL_OP)
+              {
+                $$.type = BOOL;
+                $$.bool_val = MiddleFnct($2, $3, $3.str_val);
               }
               else
               {
                 $$.type = $2.type;
+                $$.int_val = 0;
+                $$.bool_val = false;
+                $$.float_val = 0;
               }
-            }
-            // Else if a logical operator is used, resulting type is bool
-            else if($1.number == LOGICAL_OP)
-            {
-              $$.type = BOOL;
             }
             }
             | /* epsilon */
@@ -1362,9 +1377,14 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
             printRule("TERM", "FACTOR MULT_OP_LIST");
             if($2.type == NOT_APPLICABLE)
             {
+              //cerr << "in nterm" << endl;
+              //cerr << "nfactor is: " << $1.int_val << endl;
               $$.type = $1.type;
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
+              $$.int_val = $1.int_val;
+              $$.float_val = $1.float_val;
+              $$.bool_val = $1.bool_val;
             }
             else
             {
@@ -1465,6 +1485,8 @@ N_FACTOR    : N_VAR
             }
             | N_CONST
             {
+              //cerr << "in nfactor" << endl;
+              //cerr << "nconst is: " << $1.int_val << endl;
             printRule("FACTOR", "CONST");
             $$.type = $1.type;
             $$.numParams = NOT_APPLICABLE;
@@ -1928,7 +1950,7 @@ bool isIntOrStrOrFloatOrBoolCompatible(const int typeval)
   }
 }
 
-bool relOpCompare(int valOne, int valTwo, string relOper)
+bool relOpCompare(float valOne, float valTwo, string relOper)
 {
   if(relOper == "<")
     return(valOne < valTwo);
@@ -1978,7 +2000,7 @@ void printListFnct(vector<LIST_ENTRY>* listEntries)
   cout << " )" << endl;
 }
 
-bool arithYesRellogNo(char oper[256])
+/*bool arithYesRellogNo(char oper[256])
 {
   if(strcmp(oper, "+") == 0 || strcmp(oper, "-") == 0 ||
     strcmp(oper, "*") == 0 || strcmp(oper, "/") == 0 ||
@@ -1988,18 +2010,21 @@ bool arithYesRellogNo(char oper[256])
   }
   else
     return false;
-}
+}*/
 
 template<typename T, typename U>
 float ArithFnct(T t1, U t2, char oper[256])
 {
-  //cerr <<"Made it into arithfnct" << endl;
-  //cerr << "oper is: " << oper << endl;
+  cerr <<"Made it into arithfnct" << endl;
+  cerr << "oper is: " << oper << endl;
 
   if(strcmp(oper, "+") == 0)
     return(t1+t2);
   else if(strcmp(oper, "-") == 0)
+  {
+    //cerr << "in arithfun: " << t1-t2 << endl;
     return(t1-t2);
+  }
   else if(strcmp(oper, "*") == 0)
     return(t1*t2);
   else if(strcmp(oper, "/") == 0)
@@ -2008,11 +2033,32 @@ float ArithFnct(T t1, U t2, char oper[256])
     return(fmod(t1,t2));
   else if(strcmp(oper, "^") == 0)
     return(pow(t1, t2));
+  else if(strcmp(oper, "|") == 0)
+    return(t1||t2);
+  else if(strcmp(oper, "&") == 0)
+  {
+    cerr << "t1 is: " << t1 << endl;
+    cerr << "t2 is: " << t2 << endl;
+    //cerr << "ret val is: " << t1&&t2 << endl;
+    return(t1&&t2);
+  }
+  else if(strcmp(oper, "<") == 0)
+    return(t1<t2);
+  else if(strcmp(oper, ">") == 0)
+    return(t1>t2);
+  else if(strcmp(oper, "<=") == 0)
+    return(t1<=t2);
+  else if(strcmp(oper, ">=") == 0)
+    return(t1>=t2);
+  else if(strcmp(oper, "==") == 0)
+    return(t1==t2);
+  else if(strcmp(oper, "!=") == 0)
+    return(t1!=t2); 
   //cerr << "Default ret 0" << endl;
   return 0;
 }
 
-template<typename V, typename W>
+/*template<typename V, typename W>
 bool RelLogFnct(V t1, W t2, char oper[256])
 {
   if(strcmp(oper, "|") == 0)
@@ -2033,8 +2079,8 @@ bool RelLogFnct(V t1, W t2, char oper[256])
     return(t1!=t2); 
   else
     return(false);
-}
-int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
+}*/
+/*int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
 {
   //cerr << "Made it into middlefnct" << endl;
   bool arithYes = arithYesRellogNo(oper);
@@ -2087,13 +2133,18 @@ int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
   }
 
   return(ret_val);
-}
-float MiddleFnctF(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
+}*/
+
+float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
 {
   float ret_val;
 
   if(t1.type == INT && t2.type == INT)
+  {
+    //cerr << "in midfn" << endl;
     ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
+    //cerr << "mid ret: " << ret_val << endl;
+  }
   else if(t1.type == INT && t2.type == FLOAT)
     ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
   else if(t1.type == INT && t2.type == BOOL)
@@ -2113,7 +2164,8 @@ float MiddleFnctF(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
 
   return(ret_val);
 }
-bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
+
+/*bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
 {
   bool ret_val;
 
@@ -2137,7 +2189,7 @@ bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
     ret_val = ArithFnct(t1.bool_val, t2.bool_val, oper);
 
   return(ret_val);
-}
+}*/
 
 
 int main(int argc, char** argv) 
