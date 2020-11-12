@@ -5,6 +5,7 @@
 #include <list>
 #include <algorithm>
 #include <vector>
+#include <cstring>
 using namespace std;
 
 // Type codes
@@ -158,6 +159,12 @@ public:
     typeInfo.returnType = theType.returnType;
     typeInfo.isParam = theType.isParam;
     typeInfo.list_val = new vector<LIST_ENTRY>(256);
+    typeInfo.null_val = theType.null_val;
+    typeInfo.int_val = theType.int_val;
+    strcpy(typeInfo.str_val, theType.str_val);
+    typeInfo.bool_val = theType.bool_val;
+    typeInfo.float_val = theType.float_val;
+    typeInfo.list_val = theType.list_val;
   }
 
   // Accessors

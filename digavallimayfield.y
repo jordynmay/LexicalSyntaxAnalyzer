@@ -160,7 +160,7 @@ N_START		: N_EXPR
 			{
 			printRule("START", "EXPR");
       endScope();
-			printf("\n---- Completed parsing ----\n\n");
+			printf("\n---- Completed parsing ----\n");
       printf("\nValue of the expression is: ");
       //!!!! output value here - switch case maybe
       switch($1.type)
@@ -215,6 +215,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_WHILE_EXPR
             {
@@ -227,6 +228,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_FOR_EXPR
             {
@@ -239,6 +241,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_COMPOUND_EXPR
             {
@@ -251,6 +254,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_ARITHLOGIC_EXPR
             {
@@ -263,6 +267,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_ASSIGNMENT_EXPR
             {
@@ -275,6 +280,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_OUTPUT_EXPR
             {
@@ -287,6 +293,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_INPUT_EXPR
             {
@@ -299,6 +306,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_LIST_EXPR
             {
@@ -324,6 +332,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_FUNCTION_CALL
             {
@@ -336,6 +345,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_QUIT_EXPR
             {
@@ -348,6 +358,7 @@ N_EXPR      : N_IF_EXPR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             ;
 N_CONST     : T_INTCONST
@@ -426,6 +437,7 @@ N_COMPOUND_EXPR : T_LBRACE N_EXPR N_EXPR_LIST T_RBRACE
               strcpy($$.str_val, $2.str_val);
               $$.bool_val = $2.bool_val;
               $$.float_val = $2.float_val;
+              $$.list_val = $2.list_val;
             }
             else
             {
@@ -437,6 +449,7 @@ N_COMPOUND_EXPR : T_LBRACE N_EXPR N_EXPR_LIST T_RBRACE
               strcpy($$.str_val, $3.str_val);
               $$.bool_val = $3.bool_val;
               $$.float_val = $3.float_val;
+              $$.list_val = $3.list_val;
             }
             }
             ;
@@ -453,6 +466,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
               strcpy($$.str_val, $2.str_val);
               $$.bool_val = $2.bool_val;
               $$.float_val = $2.float_val;
+              $$.list_val = $2.list_val;
             }
             else
             {
@@ -464,6 +478,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
               strcpy($$.str_val, $3.str_val);
               $$.bool_val = $3.bool_val;
               $$.float_val = $3.float_val;
+              $$.list_val = $3.list_val;
             }
             }
             | /* epsilon */
@@ -472,6 +487,7 @@ N_EXPR_LIST : T_SEMICOLON N_EXPR N_EXPR_LIST
             $$.type = GOES_TO_EPSILON;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
+            $$.isParam = false;
             }
             ;
 N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
@@ -582,6 +598,7 @@ N_COND_IF   : T_IF T_LPAREN N_EXPR
             strcpy($$.str_val, $3.str_val);
             $$.bool_val = $3.bool_val;
             $$.float_val = $3.float_val;
+            $$.list_val = $3.list_val;
 
             if($$.type == FUNCTION || $$.type == LIST 
             || $$.type == NULL_TYPE || $$.type == STR)
@@ -593,9 +610,17 @@ N_COND_IF   : T_IF T_LPAREN N_EXPR
 N_THEN_EXPR : N_EXPR
             {
             printRule("THEN_EXPR", "EXPR");
+            if($1.type == FUNCTION)
+              semanticError(2, CANNOT_BE_FNCT);
             $$.type = $1.type;
             $$.numParams = $1.numParams;
             $$.returnType = $1.returnType;
+            $$.null_val = $1.null_val;
+            $$.int_val = $1.int_val;
+            strcpy($$.str_val, $1.str_val);
+            $$.bool_val = $1.bool_val;
+            $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             ;
 N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR
@@ -656,9 +681,9 @@ N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
             $$.returnType = NOT_APPLICABLE;
             //memcpy($$.list_val, $3.list_val, sizeof($$.list_val));
             $$.list_val = $3.list_val;
-            cerr << "\t\t$3 listval size is: " << $3.list_val->size() << endl;
-            cerr << "\t\t$$ listval size is: " << $$.list_val->size() << endl;
-            cerr << "\telem 2: " << $$.list_val->operator[](1).int_val << endl;
+            //cerr << "\t\t$3 listval size is: " << $3.list_val->size() << endl;
+            //cerr << "\t\t$$ listval size is: " << $$.list_val->size() << endl;
+            //cerr << "\telem 2: " << $$.list_val->operator[](1).int_val << endl;
             }
             ;
 N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
@@ -674,18 +699,18 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
 
-            cerr << "listval size is: " << $$.list_val->size() << endl;
-            cerr << "adding this elem type to list: " << push_this.type << endl;
-            cerr << "adding this elem to list: " << push_this.int_val << endl;
+            //cerr << "listval size is: " << $$.list_val->size() << endl;
+            //cerr << "adding this elem type to list: " << push_this.type << endl;
+            //cerr << "adding this elem to list: " << push_this.int_val << endl;
             //(*$$.list_val).push_back(push_this);
             //(*$$.list_val).push_back(*$3.list_val);
             if($3.type != GOES_TO_EPSILON)
             {
-              cerr << "concatenating vectors" << endl;
+              //cerr << "concatenating vectors" << endl;
             (*$$.list_val).insert($$.list_val->end(), $3.list_val->begin(),
               $3.list_val->end());
             }
-            cerr << "listval size after concat is: " << $$.list_val->size() << endl;
+            //cerr << "listval size after concat is: " << $$.list_val->size() << endl;
             }
             | N_CONST
             {
@@ -700,8 +725,8 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             //cout << "Constlist pre push back\n";
             $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
-            cerr << "\tlistval size: " << $$.list_val->size() << endl;
-            cerr << "\tlistval elem: " << $$.list_val->operator[](0).int_val << endl;
+            //cerr << "\tlistval size: " << $$.list_val->size() << endl;
+            //cerr << "\tlistval elem: " << $$.list_val->operator[](0).int_val << endl;
             //$$.list_val->push_back(push_this);
             //$$.list_val->insert($$.list_val->end(), push_this);
             //cout << "Constlist post push back\n";
@@ -737,6 +762,16 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
               //cerr << "\tnexpr is: " << $5.float_val << endl;
             string lexeme = string($1);
             TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
+            bool checkBounds = false;
+            int listSize = 0;
+            if(temp.type == LIST)
+            {
+              checkBounds = true;
+              listSize = temp.list_val->size();
+              //cerr << "\tList size for idx check is: " << listSize << endl;
+            }
+            //int listSize = temp.list_val->size();
+            //cerr << "\tList size for idx check is: " << listSize << endl;
 
             if($2.type != GOES_TO_EPSILON && !isListCompatible(temp.type)) //!!!
             {
@@ -776,7 +811,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             //memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
             temp.list_val = $5.list_val;
 
-            cerr << "\ntemp list elems: " << temp.list_val->operator[](1).int_val << endl<<endl;
+            //cerr << "\ntemp list elems: " << temp.list_val->operator[](1).int_val << endl<<endl;
             //cerr << "$2.type is: " << $2.type << endl;
 
             // If no indexing, just plain variable
@@ -785,7 +820,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
               scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
               ///////////////
               TYPE_INFO test = findEntryInAnyScope(lexeme);
-              cerr << "\ntest list elems: " << test.list_val->operator[](1).int_val << endl<<endl;
+              //cerr << "\ntest list elems: " << test.list_val->operator[](1).int_val << endl<<endl;
               ///////////////
             }
             // Else if indexing and T_IDENT is a list
@@ -811,7 +846,21 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                   idx = static_cast<int>($2.float_val);
                   break;
               }
+              //int listSize = temp.list_val->size();
+              if(checkBounds)
+              {
+                if(idx < 1 || idx > listSize)
+                {
+                  semanticError(-1, SUBSCRIPT_OOB);
+                }
+              }
+              /*if(idx < 1 || idx > listSize)
+              {
+                semanticError(-1, SUBSCRIPT_OOB);
+              }*/
               scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp), idx-1);//!@#$
+              //TYPE_INFO test2 = findEntryInAnyScope(lexeme);
+              //cerr << "\ntest2 list elems: " << test2.list_val->operator[](2).str_val << endl;
             }
             $$.type = $5.type;
             $$.numParams = $5.numParams;
@@ -1206,6 +1255,7 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_SIMPLE_ARITHLOGIC N_REL_OP N_SIMPLE_ARITHLOGIC
             {
@@ -1286,6 +1336,7 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
               $$.int_val = $1.int_val;
               $$.float_val = $1.float_val;
               $$.bool_val = $1.bool_val;
+              $$.list_val = $1.list_val;
             }
             else
             {
@@ -1405,6 +1456,7 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
               $$.int_val = $1.int_val;
               $$.float_val = $1.float_val;
               $$.bool_val = $1.bool_val;
+              $$.list_val = $1.list_val;
             }
             else
             {
@@ -1551,14 +1603,20 @@ N_FACTOR    : N_VAR
             | T_NOT N_FACTOR
             {
             printRule("FACTOR", "! FACTOR");
-            $$.type = $2.type;
+            $$.type = BOOL;
             $$.numParams = $2.numParams;
             $$.returnType = $2.returnType;
             $$.null_val = !($2.null_val);
-            $$.int_val = !($2.int_val);
-            strcpy($$.str_val, "helloworld");
-            $$.bool_val = !($2.bool_val);
-            $$.float_val = !($2.float_val);
+            if($2.type == INT)
+              $$.bool_val = !($2.int_val);
+            else if($2.type == FLOAT)
+              $$.bool_val = !($2.float_val);
+            else if($2.type == BOOL)
+              $$.bool_val = !($2.bool_val);
+            else if($2.type == STR)
+              strcpy($$.str_val, "");
+            else
+              $$.bool_val = false;
             }
             ;
 N_ADD_OP    : T_ADD
@@ -1673,6 +1731,7 @@ N_VAR       : N_ENTIRE_VAR
             strcpy($$.str_val, $1.str_val);
             $$.bool_val = $1.bool_val;
             $$.float_val = $1.float_val;
+            $$.list_val = $1.list_val;
             }
             | N_SINGLE_ELEMENT
             {
@@ -1767,6 +1826,7 @@ N_ENTIRE_VAR    : T_IDENT
             strcpy($$.str_val, temp.str_val);
             $$.bool_val = temp.bool_val;
             $$.float_val = temp.float_val;
+            $$.list_val = temp.list_val;
             }
             ;
 
@@ -2018,9 +2078,10 @@ string convertToString(char* a, int size)
 
 void printListFnct(vector<LIST_ENTRY>* listEntries)
 {
+  int listSize = (listEntries->size()) - 1;
   vector<LIST_ENTRY>& vecRef = *listEntries;
   cout << "( ";
-  for(int i=0; i<=listEntries->size()-1; i++)
+  for(int i=0; i<=listSize; i++)
   {
     if(vecRef[i].type == INT)
       cout << vecRef[i].int_val;
