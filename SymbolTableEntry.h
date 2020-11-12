@@ -53,21 +53,9 @@ typedef struct
 
 typedef struct
 {
-  //string op_str;
-  //CString op_str;
   char op_str[256];
   int number;
 
-  /*ARITHLOGREL_OP( )
-  {
-    op_str = "";
-    number = 0;
-  }
-  ARITHLOGREL_OP(const string opStr, const int numm)
-  {
-    op_str = opStr;
-    number = numm;
-  }*/
 } ARITHLOGREL_OP;
 
 typedef struct
@@ -80,10 +68,6 @@ typedef struct
   float float_val; // Only applicable if type == FLOAT
 } LIST_ENTRY;
 
-
-// Setting val for all vars each time
-// OR making a template val setting function
-//!!!! Ask Dr. Leopold
 typedef struct TYPE_INFO
 {
   int type; // One of the type codes
@@ -99,36 +83,8 @@ typedef struct TYPE_INFO
   char str_val[256];
   bool bool_val;
   float float_val;
-  vector<LIST_ENTRY>* list_val;// = new vector<LIST_ENTRY>();
-  //LIST_ENTRY* list_val[256];
-  //std::list<LIST_ENTRY>* list_val;
+  vector<LIST_ENTRY>* list_val;
   int list_size;
-    //!!! no functions this time
-  /*TYPE_INFO( )
-  {
-    type = UNDEFINED;
-    numParams = UNDEFINED;
-    returnType = UNDEFINED;
-    isParam = false;
-    null_val = 0;
-    int_val = 0;
-    //str_val = "";
-    bool_val = false;
-    float_val = 0;
-  }
-  TYPE_INFO(int type1, int numParams1, int returnType1, bool isParam1)
-  {
-    type = type1;
-    numParams = numParams1;
-    returnType = returnType1;
-    isParam = isParam1;
-  }
-  TYPE_INFO(int type1, int numParams1, int returnType1)
-  {
-    type = type1;
-    numParams = numParams1;
-    returnType = returnType1;
-  }*/
 } TYPE_INFO;
 
 

@@ -31,74 +31,51 @@ public:
     else return(false);
   }
 
+  // Modifies a variable in the stack
   void modifyEntry(SYMBOL_TABLE_ENTRY x)
   {
     map<string, SYMBOL_TABLE_ENTRY>::iterator itr;
+    // If ident is not found in the stack
     if ((itr = hashTable.find(x.getName())) == hashTable.end())
     {
       return;
     }
     else
     {
+      // Erase the old element
       hashTable.erase(itr);
+      // Insert the modified element
       hashTable.insert(make_pair(x.getName(), x));
       return;
     }
   }
 
+  // Modifies a specific element in a list variable in the stack
   void modifyListEntry(SYMBOL_TABLE_ENTRY x, const int idx)
   {
     map<string, SYMBOL_TABLE_ENTRY>::iterator itr;
+    // If ident is not found in the stack
     if ((itr = hashTable.find(x.getName())) == hashTable.end())
     {
       return;
     }
     else
     {
-      //cerr << "in else of modify" << endl;
-      //TYPE_INFO elem_to_insert = itr->second.getTypeInfo();
+      // Finds the element in the symbol table with the list containing the elem to modify
       TYPE_INFO list_to_modify = findEntry(x.getName());
+      // What we want the modified element to be
       TYPE_INFO elem_to_insert = x.getTypeInfo();
-      //LIST_ENTRY elem_to_modify = list_to_modify.list_val[idx-1];
-      //vector<LIST_ENTRY>* temp_list = new vector<LIST_ENTRY>();
-      //temp_list = list_to_modify.list_val;
-      //vector<LIST_ENTRY>& temp_list = *list_to_modify.list_val;
-      //vector<LIST_ENTRY> temp_list;
-      //temp_list.clear();
-
-      //
-      //cerr << "***temp elem type: " << temp_list[idx].type << endl;
-      //cerr << "***temp elem before modify: " << temp_list[idx].int_val << endl;
-
-      //cerr << "idx is: " << idx << endl;
-      //cerr << "list name: " << x.getName() << endl;
       int listSize = list_to_modify.list_val->size();
-
-      //cerr << "list size: " << listSize << endl;
-      //cerr << "list type: " << list_to_modify.type << endl;
-      //cerr << "elem type: " << list_to_modify.list_val->operator[](idx).type << endl;
-      //cerr << "elem before modify: " << list_to_modify.list_val->operator[](idx).int_val << endl;
-      //cerr << "elem after modify: " << list_to_modify.list_val->operator[](idx).int_val << endl;
-      
-       //cerr << "\tvals for list: " << endl;
-
-      //cerr << "index is: " << idx << endl << endl;
 
       if(elem_to_insert.type == INT)
       {
-        //cerr << "in int assign" <<endl;
         list_to_modify.list_val->operator[](idx).type = INT;
         list_to_modify.list_val->operator[](idx).int_val = elem_to_insert.int_val;
       }
       else if(elem_to_insert.type == STR)
       {
         list_to_modify.list_val->operator[](idx).type = STR;
-        //cerr << "in str assign" << endl;
-        //cerr << "val was: " << list_to_modify.list_val->operator[](idx).bool_val << endl;
         list_to_modify.list_val->operator[](idx).str_val = elem_to_insert.str_val;
-        //strcpy(list_to_modify.list_val->operator[](idx).str_val, elem_to_insert.str_val);
-        //temp_list[idx].str_val = elem_to_insert.str_val;
-        //cerr << "val is: " << list_to_modify.list_val->operator[](idx).str_val << endl;
       }
       else if(elem_to_insert.type == FLOAT)
       {
@@ -111,71 +88,9 @@ public:
         list_to_modify.list_val->operator[](idx).bool_val = elem_to_insert.bool_val;
       }
 
-
-
-      
-      /*for(int i=0; i < listSize; i++)
-      {
-        //cerr << "for i: " << i << endl;
-        temp_list.push_back(list_to_modify.list_val->operator[](i));
-      }
-      //cerr << "elem before modify in temp: " << temp_list[idx].int_val << endl;
-      //cerr << "type to insert: " << elem_to_insert.type << endl;
-      if(elem_to_insert.type == INT)
-      {
-        //cerr << "in int assign" <<endl;
-        temp_list[idx].type = INT;
-        temp_list[idx].int_val = elem_to_insert.int_val;
-      }
-      else if(elem_to_insert.type == STR)
-      {
-        temp_list[idx].type = STR;
-        strcpy(temp_list[idx].str_val, elem_to_insert.str_val);
-        //temp_list[idx].str_val = elem_to_insert.str_val;
-      }
-      else if(elem_to_insert.type == FLOAT)
-      {
-        temp_list[idx].type = FLOAT;
-        temp_list[idx].float_val = elem_to_insert.float_val;
-      }
-      else if(elem_to_insert.type == BOOL)
-      {
-        temp_list[idx].type = BOOL;
-        temp_list[idx].bool_val = elem_to_insert.bool_val;
-      }
-      //cerr << "elem after modify: " << temp_list[idx].int_val << endl;
-      //cerr << "after" <<endl;
-
-      //int sizeOfList = list_to_modify.list_val->size();
-      //cerr << "after size assign" <<endl;
-      //cerr << "size of list: " << sizeOfList << endl;
-      list_to_modify.list_val->clear();
-      for(int i=0; i < listSize; i++)
-      {
-        list_to_modify.list_val->push_back(temp_list[i]);
-      }*/
-
-
-
-
-      //cerr << "after for" << endl;
-      //TYPE_INFO temp_typeInfo = {LIST, UNDEFINED, UNDEFINED, false};
-      //temp_typeInfo.list_val = (temp_list);
-
-
-      //vector<LIST_ENTRY>& temp_list = *temp.list_val;
-      
-      //temp2[idx] = 
-
-      //insert_this = itr->second.typeInfo.list_val;
-      // We have itr at the symbol table entry we want to modify
-      // Itr points to a list
-      // We want to modify element [idx] of that list
-      // itr->second->typeInfo??
-      // How to access the [idx] element?
-      // Want to replace idx's symbol table entry with x
-      //      which was updated in the .y file via T_IDENT N_INDEX = EXPR
+      // Erase the old list
       hashTable.erase(itr);
+      // Insert the modified list
       hashTable.insert(make_pair(x.getName(), SYMBOL_TABLE_ENTRY(x.getName(), list_to_modify)));
       return;
     }

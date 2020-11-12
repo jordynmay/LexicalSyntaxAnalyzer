@@ -84,16 +84,10 @@ bool isIntOrStrOrFloatOrBoolCompatible(const int typeval);
 bool relOpCompare(float valOne, float valTwo, string relOper);
 string convertToString(char* a, int size);
 void printListFnct(vector<LIST_ENTRY>* listEntries);
-//bool arithYesRellogNo(char oper[256]);
 bool shouldBeBool(char oper[256]);
 template<typename T, typename U>
 float ArithFnct(T t1, U t2, char oper[256]);
-//template<typename V, typename W>
-//bool RelLogFnct(V t1, W t2, char oper[256]);
-//int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
 float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
-//bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256]);
-
 
 extern "C" 
 {
@@ -108,13 +102,10 @@ extern "C"
 %union
 {
   char* text;
-  //int number;
   bool flag = false;
   bool boolean_val;
   int num;
   float float_num;
-  /*TYPE_INFO typeInfo = {UNDEFINED, UNDEFINED, UNDEFINED, false,
-    0, 0, "", false, 0, new vector<LIST_ENTRY>(256)};*/
   TYPE_INFO typeInfo;
   ARITHLOGREL_OP arithlogrelOp;
 };
@@ -162,7 +153,7 @@ N_START		: N_EXPR
       endScope();
 			printf("\n---- Completed parsing ----\n");
       printf("\nValue of the expression is: ");
-      //!!!! output value here - switch case maybe
+      // Outputs value of the last expression in the input file
       switch($1.type)
       {
         case(INT):
@@ -172,15 +163,12 @@ N_START		: N_EXPR
           cout << $1.str_val;
           break;
         case(BOOL):
-          //cout << $1.bool_val ? "TRUE" : "FALSE";
-          //printf($1.bool_val ? "TRUE" : "FALSE");
           if($1.bool_val)
             cout << "TRUE";
           else
             cout << "FALSE";
           break;
         case(FLOAT):
-          //cout << $1.float_val;
           printf("%.2f", $1.float_val);
           break;
         case(NULL_TYPE):
@@ -363,8 +351,6 @@ N_EXPR      : N_IF_EXPR
             ;
 N_CONST     : T_INTCONST
             {
-              //cerr << "in nconst" <<endl;
-              //cerr << "int val is: " << $1 << endl;
             printRule("CONST", "INTCONST");
             $$.type = INT;
             $$.numParams = NOT_APPLICABLE;
@@ -511,6 +497,7 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             {
               if_value = ($1.bool_val == 0 ? false : true);
             }
+            // If the conditional is true, set according to then expr
             if(if_value)
             {
               $$.type = $3.type;
@@ -521,6 +508,7 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
               $$.float_val = $3.float_val;
               $$.list_val = $3.list_val;
             }
+            // Else, set everything to null since there is no else statement
             else
             {
               $$.type = NULL_TYPE;
@@ -556,6 +544,7 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
             {
               if_value = ($1.bool_val == 0 ? false : true);
             }
+            // If the conditional is true, set according to then expr
             if(if_value)
             {
               $$.type = $3.type;
@@ -566,6 +555,7 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
               $$.float_val = $3.float_val;
               $$.list_val = $3.list_val;
             }
+            // Else, set according to the else expr
             else
             {
               $$.type = $5.type;
@@ -576,14 +566,6 @@ N_IF_EXPR   : N_COND_IF T_RPAREN N_THEN_EXPR
               $$.float_val = $5.float_val;
               $$.list_val = $5.list_val;
             }
-            //printf("$3.type = %d \n$5.type = %d \n ORed type= %d\n", $3.type, $5.type,
-            //$3.type | $5.type);
-            // Assign IF_EXPR's type based on a combination of then and else's types
-            // Since we don't know whether the then or else will execute yet
-            /*$$.type = $3.type | $5.type; // Bitwise OR
-            $$.numParams = NOT_APPLICABLE;
-            $$.returnType = NOT_APPLICABLE;
-            $$.isParam = $3.isParam || $5.isParam;*/
             }
             ;
 N_COND_IF   : T_IF T_LPAREN N_EXPR
@@ -635,6 +617,9 @@ N_WHILE_EXPR    : T_WHILE T_LPAREN N_EXPR
             {
             printRule("WHILE_EXPR", "WHILE ( EXPR ) EXPR");
             $$.type = $6.type;
+            $$.numParams = $6.numParams;
+            $$.returnType = $6.returnType;
+            $$.isParam = $6.isParam;
             }
             ;
 N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
@@ -661,7 +646,7 @@ N_FOR_EXPR  : T_FOR T_LPAREN T_IDENT
             }
             T_IN N_EXPR
             {
-            if($6.type != LIST)//!!!
+            if($6.type != LIST)
             {
               semanticError(2, MUST_BE_LIST);
             }
@@ -679,16 +664,12 @@ N_LIST_EXPR : T_LIST T_LPAREN N_CONST_LIST T_RPAREN
             $$.type = LIST;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
-            //memcpy($$.list_val, $3.list_val, sizeof($$.list_val));
+            $$.isParam = false;
             $$.list_val = $3.list_val;
-            //cerr << "\t\t$3 listval size is: " << $3.list_val->size() << endl;
-            //cerr << "\t\t$$ listval size is: " << $$.list_val->size() << endl;
-            //cerr << "\telem 2: " << $$.list_val->operator[](1).int_val << endl;
             }
             ;
 N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             {
-              //cout << "Constlist\n";
             printRule("CONST_LIST", "CONST, CONST_LIST");
             LIST_ENTRY push_this;
             push_this.type = $1.type;
@@ -699,22 +680,15 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
 
-            //cerr << "listval size is: " << $$.list_val->size() << endl;
-            //cerr << "adding this elem type to list: " << push_this.type << endl;
-            //cerr << "adding this elem to list: " << push_this.int_val << endl;
-            //(*$$.list_val).push_back(push_this);
-            //(*$$.list_val).push_back(*$3.list_val);
+            // If there are more elements in list
             if($3.type != GOES_TO_EPSILON)
             {
-              //cerr << "concatenating vectors" << endl;
             (*$$.list_val).insert($$.list_val->end(), $3.list_val->begin(),
               $3.list_val->end());
             }
-            //cerr << "listval size after concat is: " << $$.list_val->size() << endl;
             }
             | N_CONST
             {
-              //cout << "Constlist\n";
             printRule("CONST_LIST", "CONST");
             LIST_ENTRY push_this;
             push_this.type = $1.type;
@@ -722,21 +696,12 @@ N_CONST_LIST    : N_CONST T_COMMA N_CONST_LIST
             push_this.str_val = $1.str_val;
             push_this.float_val = $1.float_val;
             push_this.bool_val = $1.bool_val;
-            //cout << "Constlist pre push back\n";
             $$.list_val = new vector<LIST_ENTRY>();
             (*$$.list_val).push_back(push_this);
-            //cerr << "\tlistval size: " << $$.list_val->size() << endl;
-            //cerr << "\tlistval elem: " << $$.list_val->operator[](0).int_val << endl;
-            //$$.list_val->push_back(push_this);
-            //$$.list_val->insert($$.list_val->end(), push_this);
-            //cout << "Constlist post push back\n";
             }
             ;
 N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             {
-              //cerr << "ident is: " << $1 << endl;
-              //cerr << "index type: " << $2.type << endl;
-              //cerr << "index val: " << $2.int_val << endl;
             printRule("ASSIGNMENT_EXPR", "IDENT INDEX = EXPR");
             string lexeme = string($1);
             TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
@@ -757,22 +722,16 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             }
             T_ASSIGN N_EXPR
             {
-              //cerr << "beginning of assign" << endl;
-              //cerr << "\tnexpr type is: " << $5.type << endl;
-              //cerr << "\tnexpr is: " << $5.float_val << endl;
             string lexeme = string($1);
             TYPE_INFO temp = scopeStack.top().findEntry(lexeme);
             bool checkBounds = false;
             int listSize = 0;
+            // Store list size if temp is a list
             if(temp.type == LIST)
             {
               checkBounds = true;
               listSize = temp.list_val->size();
-              //cerr << "\tList size for idx check is: " << listSize << endl;
             }
-            //int listSize = temp.list_val->size();
-            //cerr << "\tList size for idx check is: " << listSize << endl;
-
             if($2.type != GOES_TO_EPSILON && !isListCompatible(temp.type)) //!!!
             {
               // Cannot index into a variable that is not a list
@@ -785,20 +744,12 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                 // Parameters must be integers
                 semanticError(1, MUST_BE_INT);
               }
-              //TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
-              //scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
-            }
-            else
-            {
-              //TYPE_INFO temp2 = {$5.type, $5.numParams, $5.returnType, false};
-              //scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp2));
             }
             if($2.type != GOES_TO_EPSILON && isListCompatible($5.type))//!!!
             {
               // No lists of lists allowed
               semanticError(1, CANNOT_BE_LIST);
             }
-            //cerr << "assigning to temp" << endl;
             temp.type = $5.type;
             temp.numParams = $5.numParams;
             temp.returnType = $5.returnType;
@@ -808,25 +759,17 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             strcpy(temp.str_val, $5.str_val);
             temp.bool_val = $5.bool_val;
             temp.float_val = $5.float_val;
-            //memcpy(temp.list_val, $5.list_val, sizeof(temp.list_val));
             temp.list_val = $5.list_val;
-
-            //cerr << "\ntemp list elems: " << temp.list_val->operator[](1).int_val << endl<<endl;
-            //cerr << "$2.type is: " << $2.type << endl;
 
             // If no indexing, just plain variable
             if($2.type == GOES_TO_EPSILON)
             {
               scopeStack.top().modifyEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
-              ///////////////
               TYPE_INFO test = findEntryInAnyScope(lexeme);
-              //cerr << "\ntest list elems: " << test.list_val->operator[](1).int_val << endl<<endl;
-              ///////////////
             }
             // Else if indexing and T_IDENT is a list
             else
             {
-              //cerr << "made to else in assignment" << endl;
               int idx = 1;
               switch($2.type)
               {
@@ -846,7 +789,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                   idx = static_cast<int>($2.float_val);
                   break;
               }
-              //int listSize = temp.list_val->size();
+              // Must check the bounds to ensure proper indexing
               if(checkBounds)
               {
                 if(idx < 1 || idx > listSize)
@@ -854,13 +797,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
                   semanticError(-1, SUBSCRIPT_OOB);
                 }
               }
-              /*if(idx < 1 || idx > listSize)
-              {
-                semanticError(-1, SUBSCRIPT_OOB);
-              }*/
-              scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp), idx-1);//!@#$
-              //TYPE_INFO test2 = findEntryInAnyScope(lexeme);
-              //cerr << "\ntest2 list elems: " << test2.list_val->operator[](2).str_val << endl;
+              scopeStack.top().modifyListEntry(SYMBOL_TABLE_ENTRY(lexeme, temp), idx-1);
             }
             $$.type = $5.type;
             $$.numParams = $5.numParams;
@@ -876,8 +813,7 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
             ;
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             {
-            printRule("INDEX", "[[ EXPR ]]"); //!@#$
-            //cerr << "idx's type in index is: " << $3.type << endl;
+            printRule("INDEX", "[[ EXPR ]]");
             $$.type = $3.type;
             $$.null_val = $3.null_val;
             $$.int_val = $3.int_val;
@@ -887,7 +823,6 @@ N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             }
             | /* epsilon */
             {
-              //cerr << "idx's type in index is:-2" << endl;
             printRule("INDEX", "epsilon");
             $$.type = GOES_TO_EPSILON;
             }
@@ -908,13 +843,12 @@ N_QUIT_EXPR : T_QUIT T_LPAREN T_RPAREN
             ;
 N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             {
-              //cerr << "expr type is: " << $3.type << endl;
             printRule("OUTPUT_EXPR", "PRINT ( EXPR )");
             if($3.type == FUNCTION || $3.type == NULL_TYPE)
             {
               semanticError(1, CANNOT_BE_FNCT_NULL);
             }
-            // SWITCH CASE PRINT FOR DIFF TYPES
+            // Switch case print for different types
             switch($3.type)
             {
               case(INT):
@@ -929,8 +863,6 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(BOOL):
               {
-                //int print_bool = static_cast<int>($3.bool_val);
-                //printf("%b\n", $3.bool_val);
                 printf($3.bool_val ? "TRUE\n" : "FALSE\n");
                 break;
               }
@@ -941,41 +873,11 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(LIST):
               {
-                //cerr << "Before paren print for list\n";
-                //printf("(");
-                /*LIST_ENTRY* ptr = $3.list_val;
-                if(ptr != NULL)
-                {
-                  std::cout << *ptr;
-                  ptr = ptr->getNext();
-                  while(ptr != NULL)
-                  {
-                    std::cout << " " << *ptr;
-                    ptr = ptr->getNext();
-                  }
-                }*/
                 printListFnct($3.list_val);
-                /*cout << "Pre for\n";
-                vector<LIST_ENTRY>& vecRef = *$3.list_val;
-                for(int i=0; i<(*$3.list_val).size()-1; i++)
-                {
-                  cout << "Inside for\n";
-                  if(vecRef[i].type == INT)
-                    cout << vecRef[i].int_val;
-                  else if(vecRef[i].type == STR)
-                    cout << vecRef[i].str_val;
-                  else if(vecRef[i].type == BOOL)
-                    cout << vecRef[i].bool_val;
-                  else if(vecRef[i].type == FLOAT)
-                    cout << vecRef[i].float_val;
-
-                  if(i != $3.list_val->size()-1)
-                    cout << " ";  
-                }
-                printf(")");*/
                 break;
               }
             }
+            // PRINT takes on the type of whatever it prints
             $$.type = $3.type;
             $$.numParams = $3.numParams;
             $$.returnType = $3.returnType;
@@ -993,7 +895,7 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
             {
               semanticError(1, CANNOT_BE_FNCT_NULL);
             }
-            // SWITCH CASE PRINT FOR DIFF TYPES
+            // Switch case print for different types
             switch($3.type)
             {
               case(INT):
@@ -1008,9 +910,6 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(BOOL):
               {
-                //int print_bool = static_cast<int>($3.bool_val);
-                //printf("%d\n", print_bool);
-                //printf("%b\n", $3.bool_val);
                 printf($3.bool_val ? "TRUE\n" : "FALSE\n");
                 break;
               }
@@ -1021,39 +920,11 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
               }
               case(LIST):
               {
-                //printf("(");
-                /*LIST_ENTRY* ptr = $3.list_val;
-                if(ptr != NULL)
-                {
-                  std::cout << *ptr;
-                  ptr = ptr->getNext();
-                  while(ptr != NULL)
-                  {
-                    std::cout << " " << *ptr;
-                    ptr = ptr->getNext();
-                  }
-                }*/
-                //int currSize = $3.list_val.size();
                 printListFnct($3.list_val);
-                /*vector<LIST_ENTRY>& vecRef = *$3.list_val;
-                for(int i=0; i<(*$3.list_val).size()-1; i++)
-                {
-                  if(vecRef[i].type == INT)
-                    cout << vecRef[i].int_val;
-                  else if(vecRef[i].type == STR)
-                    cout << vecRef[i].str_val;
-                  else if(vecRef[i].type == BOOL)
-                    cout << vecRef[i].bool_val;
-                  else if(vecRef[i].type == FLOAT)
-                    cout << vecRef[i].float_val;
-
-                  if(i != $3.list_val->size()-1)
-                    cout << " ";  
-                }
-                printf(")");*/
                 break;
               }
             }
+            // CAT returns null
             $$.type = NULL_TYPE;
             $$.numParams = $3.numParams;
             $$.returnType = $3.returnType;
@@ -1067,40 +938,41 @@ N_OUTPUT_EXPR   : T_PRINT T_LPAREN N_EXPR T_RPAREN
 N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
             {
             printRule("INPUT_EXPR", "READ ( )");
-            //!!! getline
             string read_in;
-            getline(cin, read_in);//!!!
+            getline(cin, read_in); // Reads in the input
+            // If there are no signs or decimal points, the value is a string
             if(read_in[0] != '+' || read_in[0] != '-' || !isdigit(read_in[0]))
             {
                 $$.type = STR;
-                //set $$.val!!!!
                 $$.null_val = 0;
                 $$.int_val = 0;
                 strcpy($$.str_val, read_in.c_str());
                 $$.bool_val = false;
                 $$.float_val = 0;
             }
+            // Else if there is a decimal point, it is a float
             else if(read_in.find('.') != std::string::npos)
             {
                 $$.type = FLOAT;
-                //set $$.val!!!!
                 $$.null_val = 0;
                 $$.int_val = 0;
                 strcpy($$.str_val, "");
                 $$.bool_val = false;
                 $$.float_val = stof(read_in);
             }
+            // Else if there is no decimal point, it is an integer
             else
             {
                 $$.type = INT;
-                //set $$.val!!!!
                 $$.null_val = 0;
                 $$.int_val = stoi(read_in);
                 strcpy($$.str_val, "");
                 $$.bool_val = false;
                 $$.float_val = 0;
             }
-            //$$.type = INT_OR_STR_OR_FLOAT;
+            $$.numParams = NOT_APPLICABLE;
+            $$.returnType = NOT_APPLICABLE;
+            $$.isParam = false;
             }
             ;
 N_FUNCTION_DEF  : T_FUNCTION
@@ -1153,6 +1025,7 @@ N_PARAMS    : T_IDENT
             bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(!success)
             {
+              // Cannot pass the same parameter twice in a function
               semanticError(-1, MULTIPLY_DEFINED_IDENT);
               exit(1);
             }
@@ -1169,6 +1042,7 @@ N_PARAMS    : T_IDENT
             bool success =  scopeStack.top().addEntry(SYMBOL_TABLE_ENTRY(lexeme, temp));
             if(!success)
             {
+              // Cannot pass the same parameter twice in a function
               semanticError(-1, MULTIPLY_DEFINED_IDENT);
               exit(1);
             }
@@ -1260,24 +1134,16 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             | N_SIMPLE_ARITHLOGIC N_REL_OP N_SIMPLE_ARITHLOGIC
             {
             printRule("ARITHLOGIC_EXPR", "SIMPLE_ARITHLOGIC REL_OP SIMPLE_ARITHLOGIC");
-            // Both arguments must be int, float, or bool compatible
-            /*if(!isIntOrFloatOrBoolCompatible($1.type))
-            {
-              semanticError(1, MUST_BE_INT_FLOAT_BOOL);
-            }
-            else if(!isIntOrFloatOrBoolCompatible($3.type))
-            {
-              semanticError(2, MUST_BE_INT_FLOAT_BOOL);
-            }*/
             if($1.type != INT && $1.type != BOOL && $1.type != FLOAT)
             {
-              semanticError(1, MUST_BE_INT); //!!!!! need error msg
+              semanticError(1, MUST_BE_INT);
             }
             else if($3.type != INT && $3.type != BOOL && $1.type != FLOAT)
             {
-              semanticError(2, MUST_BE_INT); //!!!! need error msg
+              semanticError(2, MUST_BE_INT);
             }
             float val_one = 0;
+            // Sets value for the first simple arithlogic
             switch($1.type)
             {
               case(INT):
@@ -1294,6 +1160,7 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
                 val_one = $1.float_val;
             }
             float val_two = 0;
+            // Sets value for the second simple arithlogic
             switch($3.type)
             {
               case(INT):
@@ -1324,12 +1191,9 @@ N_ARITHLOGIC_EXPR   : N_SIMPLE_ARITHLOGIC
             ;
 N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             {
-              //cerr << "In simple arith" << endl;
             printRule("SIMPLE_ARITHLOGIC", "TERM ADD_OP_LIST");
             if($2.type == NOT_APPLICABLE)
             {
-              //cerr << "In if for n/a" << endl;
-              //cerr << "nterm is: " << $1.int_val << endl;
               $$.type = $1.type;
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
@@ -1340,7 +1204,6 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
             }
             else
             {
-              //cerr << "In else" << endl;
               // Both arguments must be int, float, or bool compatible
               if(!isIntOrFloatOrBoolCompatible($1.type))
               {
@@ -1377,8 +1240,6 @@ N_SIMPLE_ARITHLOGIC : N_TERM N_ADD_OP_LIST
                   $$.bool_val = false;
                 }
               }
-              //////////
-              //////////
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
             }
@@ -1398,7 +1259,6 @@ N_ADD_OP_LIST   : N_ADD_OP N_TERM N_ADD_OP_LIST
             // If no other add_op_list
             if($3.type == NOT_APPLICABLE)
             {
-              //cerr << "add op list n/a" << endl;
               $$.type = $2.type;
               $$.int_val = $2.int_val;
               $$.float_val = $2.float_val;
@@ -1448,8 +1308,6 @@ N_TERM      : N_FACTOR N_MULT_OP_LIST
             printRule("TERM", "FACTOR MULT_OP_LIST");
             if($2.type == NOT_APPLICABLE)
             {
-              //cerr << "in nterm" << endl;
-              //cerr << "nfactor is: " << $1.int_val << endl;
               $$.type = $1.type;
               $$.numParams = $1.numParams;
               $$.returnType = $1.returnType;
@@ -1557,6 +1415,7 @@ N_MULT_OP_LIST  : N_MULT_OP N_FACTOR N_MULT_OP_LIST
             $$.type = NOT_APPLICABLE;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
+            $$.isParam = false;
             }
             ;
 N_FACTOR    : N_VAR
@@ -1574,8 +1433,6 @@ N_FACTOR    : N_VAR
             }
             | N_CONST
             {
-              //cerr << "in nfactor" << endl;
-              //cerr << "nconst is: " << $1.int_val << endl;
             printRule("FACTOR", "CONST");
             $$.type = $1.type;
             $$.numParams = NOT_APPLICABLE;
@@ -1624,21 +1481,18 @@ N_ADD_OP    : T_ADD
             printRule("ADD_OP", "+");
             $$.number = ARITHMETIC_OP;
             strcpy($$.op_str, "+");
-            //$$.op_str = "+";
             }
             | T_SUB
             {
             printRule("ADD_OP", "-");
             $$.number = ARITHMETIC_OP;
             strcpy($$.op_str, "-");
-            //$$.op_str = "-";
             }
             | T_OR
             {
             printRule("ADD_OP", "|");
             $$.number = LOGICAL_OP;
             strcpy($$.op_str, "|");
-            //$$.op_str = "|";
             }
             ;
 N_MULT_OP   : T_MULT
@@ -1646,35 +1500,30 @@ N_MULT_OP   : T_MULT
             printRule("MULT_OP", "*");
             $$.number = ARITHMETIC_OP;
             strcpy($$.op_str, "*");
-            //$$.op_str = "*";
             }
             | T_DIV
             {
             printRule("MULT_OP", "/");
             $$.number = ARITHMETIC_OP;
             strcpy($$.op_str, "/");
-            //$$.op_str = "/";
             }
             | T_AND
             {
             printRule("MULT_OP", "&");
             $$.number = LOGICAL_OP;
             strcpy($$.op_str, "&");
-            //$$.op_str = "&";
             }
             | T_MOD
             {
-            printRule("MULT_OP", "%%");
+            printRule("MULT_OP", "\%\%");
             $$.number = ARITHMETIC_OP;
             strcpy($$.op_str, "%%");
-            //$$.op_str = "%%";
             }
             | T_POW
             {
             printRule("MULT_OP", "^");
             $$.number = ARITHMETIC_OP;
             strcpy($$.op_str, "^");
-            //$$.op_str = "^";
             }
             ;
 N_REL_OP    : T_LT
@@ -1682,42 +1531,36 @@ N_REL_OP    : T_LT
             printRule("REL_OP", "<");
             $$.number = RELATIONAL_OP;
             strcpy($$.op_str, "<");
-            //$$.op_str = "<";
             }
             | T_GT
             {
             printRule("REL_OP", ">");
             $$.number = RELATIONAL_OP;
             strcpy($$.op_str, ">");
-            //$$.op_str = ">";
             }
             | T_LE
             {
             printRule("REL_OP", "<=");
             $$.number = RELATIONAL_OP;
             strcpy($$.op_str, "<=");
-            //$$.op_str = "<=";
             }
             | T_GE
             {
             printRule("REL_OP", ">=");
             $$.number = RELATIONAL_OP;
             strcpy($$.op_str, ">=");
-            //$$.op_str = ">=";
             }
             | T_EQ
             {
             printRule("REL_OP", "==");
             $$.number = RELATIONAL_OP;
             strcpy($$.op_str, "==");
-            //$$.op_str = "==";
             }
             | T_NE
             {
             printRule("REL_OP", "!=");
             $$.number = RELATIONAL_OP;
             strcpy($$.op_str, "!=");
-            //$$.op_str = "!=";
             }
             ;
 N_VAR       : N_ENTIRE_VAR
@@ -1759,7 +1602,7 @@ N_SINGLE_ELEMENT    : T_IDENT
               semanticError(-1, UNDEFINED_IDENT);
               exit(1);
             }
-            else if(!isListCompatible(temp.type)) //!!!
+            else if(!isListCompatible(temp.type))
             {
               // Cannot index into a variable that is not a list
               semanticError(1, MUST_BE_LIST);
@@ -1771,7 +1614,6 @@ N_SINGLE_ELEMENT    : T_IDENT
                 idx = $4.null_val;
                 break;
               case(INT):
-                //cerr << "idx is an int!" << endl;
                 idx = $4.int_val;
                 break;
               case(STR):
@@ -1787,15 +1629,11 @@ N_SINGLE_ELEMENT    : T_IDENT
                 idx = static_cast<int>($4.float_val);
                 break;
             }
-            //TYPE_INFO temp3 = findEntryInAnyScope(string($1));
-            //cerr << "before idxing" << endl;
             if(idx > temp.list_val->size() || idx < 1)
             {
-              //cerr << "OOB error" << endl;
               semanticError(-1,SUBSCRIPT_OOB);
             }
             vector<LIST_ENTRY>& vecRef = *temp.list_val;
-            //cerr << "after & *" << endl;
             $$.type = vecRef[idx-1].type;
             $$.numParams = NOT_APPLICABLE;
             $$.returnType = NOT_APPLICABLE;
@@ -1803,7 +1641,6 @@ N_SINGLE_ELEMENT    : T_IDENT
             strcpy($$.str_val, vecRef[idx-1].str_val.c_str());
             $$.bool_val = vecRef[idx-1].bool_val;
             $$.float_val = vecRef[idx-1].float_val;
-            //cerr << "after all val assignments" << endl;
             }
             ;
 N_ENTIRE_VAR    : T_IDENT
@@ -2047,6 +1884,7 @@ bool isIntOrStrOrFloatOrBoolCompatible(const int typeval)
   }
 }
 
+// Evaluates a boolean expression given a relational operator
 bool relOpCompare(float valOne, float valTwo, string relOper)
 {
   if(relOper == "<")
@@ -2065,6 +1903,7 @@ bool relOpCompare(float valOne, float valTwo, string relOper)
     return false;
 }
 
+// Converts char* to type string
 string convertToString(char* a, int size)
 {
   int i;
@@ -2076,6 +1915,7 @@ string convertToString(char* a, int size)
   return s;
 }
 
+// Prints all entries in a list
 void printListFnct(vector<LIST_ENTRY>* listEntries)
 {
   int listSize = (listEntries->size()) - 1;
@@ -2098,18 +1938,8 @@ void printListFnct(vector<LIST_ENTRY>* listEntries)
   cout << " )" << endl;
 }
 
-/*bool arithYesRellogNo(char oper[256])
-{
-  if(strcmp(oper, "+") == 0 || strcmp(oper, "-") == 0 ||
-    strcmp(oper, "*") == 0 || strcmp(oper, "/") == 0 ||
-    strcmp(oper, "%%") == 0 || strcmp(oper, "^") == 0)
-  {
-    return true;
-  }
-  else
-    return false;
-}*/
-
+// Returns if the resulting type of the larger expression should be boolean
+//    Which is true if a relational or logical operator is used
 bool shouldBeBool(char oper[256])
 {
   if(strcmp(oper, "|") == 0 || strcmp(oper, "&") == 0 ||
@@ -2123,17 +1953,15 @@ bool shouldBeBool(char oper[256])
     return false;
 }
 
+// Takes an operator and two variables of type int, float, or bool
+// Computes the arithmetic result of the operation
 template<typename T, typename U>
 float ArithFnct(T t1, U t2, char oper[256])
 {
-  //cerr <<"Made it into arithfnct" << endl;
-  //cerr << "oper is: " << oper << endl;
-
   if(strcmp(oper, "+") == 0)
     return(t1+t2);
   else if(strcmp(oper, "-") == 0)
   {
-    //cerr << "in arithfun: " << t1-t2 << endl;
     return(t1-t2);
   }
   else if(strcmp(oper, "*") == 0)
@@ -2152,14 +1980,10 @@ float ArithFnct(T t1, U t2, char oper[256])
     return(pow(t1, t2));
   else if(strcmp(oper, "|") == 0)
   {
-    //cerr << "in arithfn" << endl;
     return(t1||t2);
   }
   else if(strcmp(oper, "&") == 0)
   {
-    //cerr << "t1 is: " << t1 << endl;
-    //cerr << "t2 is: " << t2 << endl;
-    //cerr << "ret val is: " << t1&&t2 << endl;
     return(t1&&t2);
   }
   else if(strcmp(oper, "<") == 0)
@@ -2174,86 +1998,8 @@ float ArithFnct(T t1, U t2, char oper[256])
     return(t1==t2);
   else if(strcmp(oper, "!=") == 0)
     return(t1!=t2); 
-  //cerr << "Default ret 0" << endl;
   return 0;
 }
-
-/*template<typename V, typename W>
-bool RelLogFnct(V t1, W t2, char oper[256])
-{
-  if(strcmp(oper, "|") == 0)
-    return(t1||t2);
-  else if(strcmp(oper, "&") == 0)
-    return(t1&&t2);
-  else if(strcmp(oper, "<") == 0)
-    return(t1<t2);
-  else if(strcmp(oper, ">") == 0)
-    return(t1>t2);
-  else if(strcmp(oper, "<=") == 0)
-    return(t1<=t2);
-  else if(strcmp(oper, ">=") == 0)
-    return(t1>=t2);
-  else if(strcmp(oper, "==") == 0)
-    return(t1==t2);
-  else if(strcmp(oper, "!=") == 0)
-    return(t1!=t2); 
-  else
-    return(false);
-}*/
-/*int MiddleFnctI(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
-{
-  //cerr << "Made it into middlefnct" << endl;
-  bool arithYes = arithYesRellogNo(oper);
-
-  if(arithYes)
-  {
-    int ret_val = 0;
-    if(t1.type == INT && t2.type == INT)
-      ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
-    else if(t1.type == INT && t2.type == FLOAT)
-      ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
-    else if(t1.type == INT && t2.type == BOOL)
-      ret_val = ArithFnct(t1.int_val, t2.bool_val, oper);
-    else if(t1.type == FLOAT && t2.type == INT)
-      ret_val = ArithFnct(t1.float_val, t2.int_val, oper);
-    else if(t1.type == FLOAT && t2.type == FLOAT)
-      ret_val = ArithFnct(t1.float_val, t2.float_val, oper);
-    else if(t1.type == FLOAT && t2.type == BOOL)
-      ret_val = ArithFnct(t1.float_val, t2.bool_val, oper);
-    else if(t1.type == BOOL && t2.type == INT)
-      ret_val = ArithFnct(t1.bool_val, t2.int_val, oper);
-    else if(t1.type == BOOL && t2.type == FLOAT)
-      ret_val = ArithFnct(t1.bool_val, t2.float_val, oper);
-    else if(t1.type == BOOL && t2.type == BOOL)
-      ret_val = ArithFnct(t1.bool_val, t2.bool_val, oper);
-    return ret_val;
-  }
-  else
-  {
-    bool ret_val = false;
-    if(t1.type == INT && t2.type == INT)
-      ret_val = RelLogFnct(t1.int_val, t2.int_val, oper);
-    else if(t1.type == INT && t2.type == FLOAT)
-      ret_val = RelLogFnct(t1.int_val, t2.float_val, oper);
-    else if(t1.type == INT && t2.type == BOOL)
-      ret_val = RelLogFnct(t1.int_val, t2.bool_val, oper);
-    else if(t1.type == FLOAT && t2.type == INT)
-      ret_val = RelLogFnct(t1.float_val, t2.int_val, oper);
-    else if(t1.type == FLOAT && t2.type == FLOAT)
-      ret_val = RelLogFnct(t1.float_val, t2.float_val, oper);
-    else if(t1.type == FLOAT && t2.type == BOOL)
-      ret_val = RelLogFnct(t1.float_val, t2.bool_val, oper);
-    else if(t1.type == BOOL && t2.type == INT)
-      ret_val = RelLogFnct(t1.bool_val, t2.int_val, oper);
-    else if(t1.type == BOOL && t2.type == FLOAT)
-      ret_val = RelLogFnct(t1.bool_val, t2.float_val, oper);
-    else if(t1.type == BOOL && t2.type == BOOL)
-      ret_val = RelLogFnct(t1.bool_val, t2.bool_val, oper);
-    return ret_val;
-  }
-
-  return(ret_val);
-}*/
 
 float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
 {
@@ -2261,9 +2007,7 @@ float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
 
   if(t1.type == INT && t2.type == INT)
   {
-    //cerr << "in midfn" << endl;
     ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
-    //cerr << "mid ret: " << ret_val << endl;
   }
   else if(t1.type == INT && t2.type == FLOAT)
     ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
@@ -2285,36 +2029,8 @@ float MiddleFnct(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
   return(ret_val);
 }
 
-/*bool MiddleFnctB(TYPE_INFO t1, TYPE_INFO t2, char oper[256])
-{
-  bool ret_val;
-
-  if(t1.type == INT && t2.type == INT)
-    ret_val = ArithFnct(t1.int_val, t2.int_val, oper);
-  else if(t1.type == INT && t2.type == FLOAT)
-    ret_val = ArithFnct(t1.int_val, t2.float_val, oper);
-  else if(t1.type == INT && t2.type == BOOL)
-    ret_val = ArithFnct(t1.int_val, t2.bool_val, oper);
-  else if(t1.type == FLOAT && t2.type == INT)
-    ret_val = ArithFnct(t1.float_val, t2.int_val, oper);
-  else if(t1.type == FLOAT && t2.type == FLOAT)
-    ret_val = ArithFnct(t1.float_val, t2.float_val, oper);
-  else if(t1.type == FLOAT && t2.type == BOOL)
-    ret_val = ArithFnct(t1.float_val, t2.bool_val, oper);
-  else if(t1.type == BOOL && t2.type == INT)
-    ret_val = ArithFnct(t1.bool_val, t2.int_val, oper);
-  else if(t1.type == BOOL && t2.type == FLOAT)
-    ret_val = ArithFnct(t1.bool_val, t2.float_val, oper);
-  else if(t1.type == BOOL && t2.type == BOOL)
-    ret_val = ArithFnct(t1.bool_val, t2.bool_val, oper);
-
-  return(ret_val);
-}*/
-
-
 int main(int argc, char** argv) 
 {
-  //cout <<"pre sf\n";
   beginScope();
   if(argc < 2)
   {
