@@ -941,7 +941,7 @@ N_INPUT_EXPR    : T_READ T_LPAREN T_RPAREN
             string read_in;
             getline(cin, read_in); // Reads in the input
             // If there are no signs or decimal points, the value is a string
-            if(read_in[0] != '+' || read_in[0] != '-' || !isdigit(read_in[0]))
+            if(read_in[0] != '+' && read_in[0] != '-' && !isdigit(read_in[0]))
             {
                 $$.type = STR;
                 $$.null_val = 0;
