@@ -814,6 +814,12 @@ N_ASSIGNMENT_EXPR    : T_IDENT N_INDEX
 N_INDEX     : T_LBRACKET T_LBRACKET N_EXPR T_RBRACKET T_RBRACKET
             {
             printRule("INDEX", "[[ EXPR ]]");
+
+            if($3.type != INT)
+            {
+              semanticError(1, MUST_BE_INT);
+            }
+
             $$.type = $3.type;
             $$.null_val = $3.null_val;
             $$.int_val = $3.int_val;
